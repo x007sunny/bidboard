@@ -12,7 +12,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Simple ranking card hover */
 .ranking-card:hover {
   background-color: #fafafa;
+}
+
+/* Clean scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
 }

@@ -14,6 +14,7 @@ model Listing {
   title       String
   description String   @db.Text
   category    String   @default("Other")
+  logoUrl     String?
   bidCents    Int
   clicks      Int      @default(0)
   createdAt   DateTime @default(now())
