@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en-AU">
       <body className="min-h-screen antialiased bg-[#fafafa] text-neutral-900">
-        <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 sm:py-4">
+        <div className="mx-auto max-w-4xl px-4 pt-2 pb-4 sm:px-6">
           {children}
         </div>
       </body>
