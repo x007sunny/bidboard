@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { getLeaderboard, formatAUD, getTopBidCents } from "@/lib/ranking";
-import { BidForm } from "@/components/BidForm";
 import { RankingCard } from "@/components/RankingCard";
 import { ActivityFeed } from "@/components/ActivityFeed";
+import { ClaimBox } from "@/components/ClaimBox";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,6 @@ export default async function HomePage({
   const page = Math.max(1, parseInt(params.page || "1", 10));
   const { listings, total } = await getLeaderboard(50, page);
   const topBid = await getTopBidCents();
-  const claimTopPrice = Math.max(topBid + 500, 500);
 
   const totalRevenue = await prisma.payment.aggregate({
     where: { status: "completed" },
@@ -33,15 +32,16 @@ export default async function HomePage({
   const totalVisitors = 1327 + Math.floor(hoursSinceLaunch * 12);
   const onlineNow = 3 + Math.floor(Math.random() * 8);
 
+  const bidList = listings.map((l) => ({ id: l.id, bidCents: l.bidCents }));
+
   return (
     <main>
-      {/* Header - logo only, larger */}
       <header className="mb-4 flex items-center justify-between">
         <Link href="/">
           <img
             src="/logo.png"
             alt="Bidboard"
-            className="h-11 w-11 rounded-xl object-contain"
+            className="h-14 w-14 rounded-xl object-contain"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm text-neutral-500">
@@ -54,7 +54,6 @@ export default async function HomePage({
         </div>
       </header>
 
-      {/* Centered visitor bar */}
       <div className="mb-6 flex justify-center">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-green-500"></span>
@@ -64,25 +63,10 @@ export default async function HomePage({
         </div>
       </div>
 
-      {/* Compact claim section like outbid */}
-      <section className="mb-8 text-center">
-        <h1 className="mb-1 text-2xl font-bold tracking-tight sm:text-3xl">
-          Claim <span className="text-orange-500">#1</span> for{" "}
-          <span className="text-orange-500">{formatAUD(claimTopPrice)}</span>
-        </h1>
-        <p className="mb-5 text-sm text-neutral-500 max-w-lg mx-auto">
-          New spots start at $5. Paying less than the #1 price still puts you on
-          the board at whatever place that bid can take.
-        </p>
-
-        <div className="mx-auto max-w-2xl">
-          <BidForm defaultAmount={claimTopPrice / 100} isTopClaim />
-        </div>
-      </section>
+      <ClaimBox topBidCents={topBid} listings={bidList} />
 
       <ActivityFeed />
 
-      {/* Leaderboard */}
       <section className="mt-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-neutral-600">Leaderboard</h2>
