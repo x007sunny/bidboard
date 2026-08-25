@@ -11,24 +11,16 @@ export default function AboutPage() {
 
       <h1 className="mb-6 text-3xl font-bold tracking-tight">About</h1>
 
-      <div className="prose prose-neutral max-w-none space-y-6 text-neutral-700">
+      <div className="space-y-6 text-neutral-700">
         <p>
           bidboard.com.au is a simple pay-to-rank leaderboard for Australian businesses,
           restaurants, services, shops and online stores.
         </p>
-
         <p>
           No ads. No API keys. No revenue sharing.
           Just outbid your competition to rank higher — that’s it.
         </p>
-
-        <p>
-          Rank is the bid — nothing else.
-        </p>
-
-        <p className="text-sm text-neutral-500">
-          Inspired by the original outbid.lol concept.
-        </p>
+        <p>Rank is the bid — nothing else.</p>
       </div>
 
       <div className="mt-12">

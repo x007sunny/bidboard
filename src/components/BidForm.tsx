@@ -160,11 +160,7 @@ export function BidForm({
         disabled={loading}
         className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:opacity-60"
       >
-        {loading
-          ? "Redirecting to Stripe…"
-          : isTopClaim
-          ? "Outbid for #1"
-          : "Place bid"}
+        {loading ? "Redirecting to Stripe…" : isTopClaim ? "Outbid for #1" : "Place bid"}
       </button>
     </form>
   );

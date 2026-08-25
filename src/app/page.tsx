@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { getLeaderboard, formatAUD, getTopBidCents } from "@/lib/ranking";
 import { BidForm } from "@/components/BidForm";
 import { RankingCard } from "@/components/RankingCard";
@@ -20,7 +19,6 @@ export default async function HomePage({
   const topBid = await getTopBidCents();
   const claimTopPrice = Math.max(topBid + 500, 500);
 
-  // Simple stats for footer
   const totalRevenue = await prisma.payment.aggregate({
     where: { status: "completed" },
     _sum: { amountCents: true },
@@ -28,7 +26,6 @@ export default async function HomePage({
   const revenueCents = totalRevenue._sum.amountCents || 0;
   const listingCount = await prisma.listing.count();
 
-  // Launch time (you can change this date)
   const launchDate = new Date("2026-08-23T00:00:00Z");
   const hoursSinceLaunch = Math.floor(
     (Date.now() - launchDate.getTime()) / (1000 * 60 * 60)
@@ -36,10 +33,8 @@ export default async function HomePage({
 
   return (
     <main>
-      {/* Header */}
       <header className="mb-8 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          {/* Logo - replace /logo.png with your actual logo later */}
           <img src="/logo.png" alt="Bidboard" className="h-8 w-8 rounded-md object-contain" />
           <span className="text-lg font-semibold tracking-tight">
             bidboard<span className="text-neutral-400">.com.au</span>
@@ -55,7 +50,6 @@ export default async function HomePage({
         </div>
       </header>
 
-      {/* Hero */}
       <section className="mb-10">
         <h1 className="mb-3 text-3xl font-bold tracking-tight sm:text-4xl">
           Outbid your competition
@@ -66,7 +60,6 @@ export default async function HomePage({
           Just outbid other Australian businesses to get to the top.
         </p>
 
-        {/* Claim #1 box */}
         <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8">
           <div className="mb-1 flex items-baseline justify-between gap-4">
             <h2 className="text-base font-medium text-neutral-600">
@@ -84,10 +77,8 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Latest activity */}
       <ActivityFeed />
 
-      {/* Leaderboard */}
       <section className="mt-10">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">Leaderboard</h2>
@@ -115,14 +106,10 @@ export default async function HomePage({
           </div>
         )}
 
-        {/* Pagination */}
         {total > 50 && (
           <div className="mt-10 flex justify-center gap-6 text-sm">
             {page > 1 && (
-              <Link
-                href={`/?page=${page - 1}`}
-                className="text-neutral-600 hover:text-black"
-              >
+              <Link href={`/?page=${page - 1}`} className="text-neutral-600 hover:text-black">
                 ← Previous
               </Link>
             )}
@@ -130,10 +117,7 @@ export default async function HomePage({
               Page {page} of {Math.ceil(total / 50)}
             </span>
             {page * 50 < total && (
-              <Link
-                href={`/?page=${page + 1}`}
-                className="text-neutral-600 hover:text-black"
-              >
+              <Link href={`/?page=${page + 1}`} className="text-neutral-600 hover:text-black">
                 Next →
               </Link>
             )}
@@ -141,7 +125,6 @@ export default async function HomePage({
         )}
       </section>
 
-      {/* Footer like outbid.lol */}
       <footer className="mt-20 border-t border-neutral-100 pt-8 pb-4 text-center">
         <p className="text-sm text-neutral-500">
           This simple side project made

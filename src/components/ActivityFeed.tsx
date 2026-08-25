@@ -16,7 +16,6 @@ export async function ActivityFeed() {
 
   if (recent.length === 0) return null;
 
-  // Approximate rank (not perfect for activity, but good enough for MVP)
   const allOrdered = await prisma.listing.findMany({
     orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
     select: { id: true },

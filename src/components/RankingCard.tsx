@@ -24,12 +24,10 @@ export function RankingCard({
 
   return (
     <div className="ranking-card group flex gap-4 py-5 transition-colors first:pt-0">
-      {/* Rank */}
       <div className="w-8 shrink-0 pt-1 text-right text-sm font-medium text-neutral-400">
         #{rank}
       </div>
 
-      {/* Logo */}
       <div className="shrink-0">
         {listing.logoUrl ? (
           <img
@@ -44,7 +42,6 @@ export function RankingCard({
         )}
       </div>
 
-      {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
           <a
@@ -75,7 +72,6 @@ export function RankingCard({
         </div>
       </div>
 
-      {/* Claim button */}
       <div className="hidden shrink-0 self-center sm:block">
         <Link
           href={`/?claim=${listing.id}&amount=${claimPrice / 100}`}

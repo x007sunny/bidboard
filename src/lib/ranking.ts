@@ -4,7 +4,6 @@ import { MIN_BID_CENTS, TOP_OUTBID_EXTRA_CENTS } from "./stripe";
 export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title: string; isHandle: boolean } {
   let cleaned = input.trim();
 
-  // X / Twitter handle
   if (cleaned.startsWith("@")) {
     const handle = cleaned.toLowerCase().replace(/[^a-z0-9_]/g, "");
     return {
@@ -14,11 +13,9 @@ export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title:
     };
   }
 
-  // URL
   try {
     if (!cleaned.startsWith("http")) cleaned = `https://${cleaned}`;
     const url = new URL(cleaned);
-    // strip tracking params and www
     url.search = "";
     url.hash = "";
     let host = url.hostname.replace(/^www\./, "");
@@ -27,7 +24,6 @@ export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title:
     const title = path ? `${host}${path}` : host;
     return { uniqueKey, title, isHandle: false };
   } catch {
-    // fallback treat as domain
     const domain = cleaned.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
     return {
       uniqueKey: `url:${domain}`,
@@ -42,7 +38,7 @@ export async function getLeaderboard(limit = 100, page = 1) {
   const listings = await prisma.listing.findMany({
     orderBy: [
       { bidCents: "desc" },
-      { lastBidAt: "asc" }, // older wins on equal bid
+      { lastBidAt: "asc" },
     ],
     take: limit,
     skip,
@@ -58,25 +54,6 @@ export async function getTopBidCents(): Promise<number> {
     select: { bidCents: true },
   });
   return top?.bidCents ?? 0;
-}
-
-export async function getListingByUniqueKey(uniqueKey: string) {
-  return prisma.listing.findUnique({ where: { uniqueKey } });
-}
-
-export function calculateRequiredBid(currentTopCents: number, existingBidCents: number | null, desiredRank: "top" | "any" = "any") {
-  if (existingBidCents !== null) {
-    // raising own listing – must be at least $1 more
-    return Math.max(existingBidCents + 100, MIN_BID_CENTS);
-  }
-
-  if (desiredRank === "top" || currentTopCents === 0) {
-    // take #1 needs current + $5
-    return Math.max(currentTopCents + TOP_OUTBID_EXTRA_CENTS, MIN_BID_CENTS);
-  }
-
-  // any rank – just minimum
-  return MIN_BID_CENTS;
 }
 
 export function formatAUD(cents: number): string {
