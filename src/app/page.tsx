@@ -41,7 +41,7 @@ export default async function HomePage({
           <img
             src="/logo.png"
             alt="Bidboard"
-            className="h-18 w-18 rounded-xl object-contain"
+            className="h-24 w-24 rounded-xl object-contain"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm text-neutral-500">
