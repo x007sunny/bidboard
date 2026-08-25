@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function BidForm({
   defaultAmount = 5,
@@ -19,6 +19,10 @@ export function BidForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showMore, setShowMore] = useState(false);
+
+  useEffect(() => {
+    setAmount(defaultAmount);
+  }, [defaultAmount]);
 
   const categories = [
     "Restaurants",
@@ -70,7 +74,6 @@ export function BidForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {/* Main compact row like outbid */}
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
@@ -102,7 +105,7 @@ export function BidForm({
               min={5}
               step={1}
               value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              onChange={(e) => setAmount(Number(e.target.value) || 5)}
               className="w-24 rounded-xl border border-neutral-300 py-2.5 pl-7 pr-2 text-sm outline-none focus:border-black"
             />
           </div>
@@ -120,7 +123,6 @@ export function BidForm({
         Already on the list? Enter the same URL or @handle and up your bid.
       </p>
 
-      {/* Optional fields collapsed */}
       <button
         type="button"
         onClick={() => setShowMore(!showMore)}
