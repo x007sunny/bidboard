@@ -36,7 +36,7 @@ export default async function HomePage({
 
   return (
     <main>
-      <header className="mb-4 flex items-center justify-between">
+      <header className="mb-2 flex items-center justify-between">
         <Link href="/">
           <img
             src="/logo.png"
