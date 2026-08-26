@@ -3,30 +3,25 @@ import Link from "next/link";
 export default function AboutPage() {
   return (
     <main>
-      <header className="mb-10">
-        <Link href="/" className="text-xl font-semibold tracking-tight">
-          bidboard<span className="text-neutral-400">.com.au</span>
+      <header className="mb-8">
+        <Link href="/" className="text-sm text-neutral-500 hover:text-black">
+          ← Back
         </Link>
       </header>
 
-      <h1 className="mb-6 text-3xl font-bold tracking-tight">About</h1>
+      <h1 className="mb-4 text-2xl font-bold tracking-tight">About Bidboard</h1>
 
-      <div className="space-y-6 text-neutral-700">
+      <div className="space-y-4 text-neutral-700 text-sm leading-relaxed max-w-lg">
         <p>
-          bidboard.com.au is a simple pay-to-rank leaderboard for Australian businesses,
-          restaurants, services, shops and online stores.
+          Bidboard is Australia&apos;s pay-to-rank business leaderboard.
         </p>
         <p>
-          No ads. No API keys. No revenue sharing.
-          Just outbid your competition to rank higher — that’s it.
+          No ads. No subscriptions. No algorithms.
+          Businesses compete for visibility by bidding for their position.
         </p>
-        <p>Rank is the bid — nothing else.</p>
-      </div>
-
-      <div className="mt-12">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-black">
-          ← Back to leaderboard
-        </Link>
+        <p>
+          The highest bid ranks highest. That&apos;s it.
+        </p>
       </div>
     </main>
   );

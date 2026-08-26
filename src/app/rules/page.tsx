@@ -3,55 +3,35 @@ import Link from "next/link";
 export default function RulesPage() {
   return (
     <main>
-      <header className="mb-10">
-        <Link href="/" className="text-xl font-semibold tracking-tight">
-          bidboard<span className="text-neutral-400">.com.au</span>
+      <header className="mb-8">
+        <Link href="/" className="text-sm text-neutral-500 hover:text-black">
+          ← Back
         </Link>
       </header>
 
-      <h1 className="mb-6 text-3xl font-bold tracking-tight">Rules</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight">Rules</h1>
 
-      <div className="space-y-6 text-neutral-700">
-        <p>
-          Bidboard is a public leaderboard for Australian businesses.
-          There are no ads, no API keys, and no revenue share.
-          You pay to stand above everyone else.
-          Rank is the bid — nothing else.
-        </p>
-
+      <div className="space-y-6 text-sm text-neutral-700 leading-relaxed max-w-lg">
         <section>
-          <h2 className="text-xl font-semibold text-black">How ranking works</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5">
-            <li>
-              New listings are whole Australian dollars, $5 minimum, $999,999 maximum, $1 at a time.
-              Bids already on the board keep their amount until they raise or get outranked.
-            </li>
-            <li>
-              Taking #1 costs at least $5 more than the current top bid.
-              Paying less still puts you on the board at whatever rank that bid can take.
-              Equal bids stay in the order they were placed — the older bid keeps the higher rank.
-            </li>
-            <li>
-              Enter the same website or @handle again to raise that listing.
-              The new bid must be at least $1 above your current bid; you only pay the difference.
-            </li>
+          <h2 className="font-semibold text-black mb-2">How ranking works</h2>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>New listings start at $5 AUD minimum.</li>
+            <li>Highest bid = highest rank. Nothing else matters.</li>
+            <li>To take #1 you must bid at least $5 more than the current top bid.</li>
+            <li>Paying less still puts you on the board at whatever rank that amount can reach.</li>
+            <li>Already listed? Enter the same URL or @handle and only pay the difference to raise your position.</li>
+            <li>Equal bids: the older listing keeps the higher rank.</li>
           </ul>
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold text-black">What you can list</h2>
-          <ul className="mt-3 list-disc space-y-2 pl-5">
+          <h2 className="font-semibold text-black mb-2">What you can list</h2>
+          <ul className="list-disc pl-5 space-y-1.5">
             <li>A business website, online shop, or an X @handle.</li>
             <li>Chat and invite links are not allowed.</li>
-            <li>Links to illegal or adult content are not allowed.</li>
+            <li>Illegal or adult content is not allowed.</li>
           </ul>
         </section>
-      </div>
-
-      <div className="mt-12">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-black">
-          ← Back to leaderboard
-        </Link>
       </div>
     </main>
   );

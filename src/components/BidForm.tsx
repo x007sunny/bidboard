@@ -6,10 +6,12 @@ export function BidForm({
   defaultAmount = 5,
   isTopClaim = false,
   existingUrl = "",
+  onAmountChange,
 }: {
   defaultAmount?: number;
   isTopClaim?: boolean;
   existingUrl?: string;
+  onAmountChange?: (n: number) => void;
 }) {
   const [url, setUrl] = useState(existingUrl);
   const [description, setDescription] = useState("");
@@ -34,8 +36,15 @@ export function BidForm({
     "Online Shops",
     "Professional Services",
     "Health & Fitness",
+    "Trades",
+    "Real Estate",
     "Other",
   ];
+
+  function updateAmount(n: number) {
+    setAmount(n);
+    onAmountChange?.(n);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +52,19 @@ export function BidForm({
     setLoading(true);
 
     try {
+      // Auto-fetch favicon if no logo provided and it's a website
+      let finalLogo = logoUrl.trim() || null;
+      if (!finalLogo && url && !url.trim().startsWith("@")) {
+        try {
+          let domain = url.trim();
+          if (!domain.startsWith("http")) domain = `https://${domain}`;
+          const host = new URL(domain).hostname.replace(/^www\./, "");
+          finalLogo = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+        } catch {
+          // ignore
+        }
+      }
+
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -50,7 +72,7 @@ export function BidForm({
           url: url.trim(),
           description: description.trim() || url.trim(),
           category,
-          logoUrl: logoUrl.trim() || null,
+          logoUrl: finalLogo,
           amountCents: Math.round(amount * 100),
         }),
       });
@@ -72,6 +94,8 @@ export function BidForm({
     }
   }
 
+  const isRaise = existingUrl || false;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
@@ -80,13 +104,13 @@ export function BidForm({
           required
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="Your product URL or @handle"
-          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black"
+          placeholder="Your website or @handle"
+          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black bg-white"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black sm:w-40"
+          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black sm:w-44 bg-white"
         >
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -94,33 +118,17 @@ export function BidForm({
             </option>
           ))}
         </select>
-        <div className="flex gap-2">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
-              $
-            </span>
-            <input
-              type="number"
-              required
-              min={5}
-              step={1}
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value) || 5)}
-              className="w-24 rounded-xl border border-neutral-300 py-2.5 pl-7 pr-2 text-sm outline-none focus:border-black"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60 whitespace-nowrap"
-          >
-            {loading ? "…" : "Outbid"}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60 whitespace-nowrap"
+        >
+          {loading ? "…" : isTopClaim ? "Get on the board" : "Get on the board"}
+        </button>
       </div>
 
       <p className="text-xs text-neutral-500">
-        Already on the list? Enter the same URL or @handle and up your bid.
+        Already listed? Enter the same URL or @handle to raise your position.
       </p>
 
       <button
@@ -128,7 +136,7 @@ export function BidForm({
         onClick={() => setShowMore(!showMore)}
         className="text-xs text-neutral-500 hover:text-black"
       >
-        {showMore ? "Hide extra fields" : "+ Add description & logo"}
+        {showMore ? "Hide extra fields" : "+ Add description & custom logo"}
       </button>
 
       {showMore && (
@@ -139,14 +147,14 @@ export function BidForm({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Short description (optional)"
             maxLength={280}
-            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black"
+            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black bg-white"
           />
           <input
             type="url"
             value={logoUrl}
             onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="Logo URL (optional)"
-            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black"
+            placeholder="Custom logo URL (optional – we auto-fetch favicon)"
+            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black bg-white"
           />
         </div>
       )}

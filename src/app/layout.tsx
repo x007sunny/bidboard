@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "bidboard.com.au – Outbid your competition",
+  title: "bidboard.com.au – Buy your position. Get seen.",
   description:
-    "No ads, no API keys, no revenue sharing. Just outbid your competition to get to the top. Australia’s pay-to-rank leaderboard.",
+    "Australia's pay-to-rank business leaderboard. No ads. No subscriptions. Your bid determines your rank.",
   metadataBase: new URL("https://bidboard.com.au"),
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en-AU">
       <body className="min-h-screen antialiased bg-[#fafafa] text-neutral-900">
-        <div className="mx-auto max-w-4xl px-4 pt-2 pb-4 sm:px-6">
+        <div className="mx-auto max-w-4xl px-4 pt-2 pb-6 sm:px-6">
           {children}
         </div>
       </body>

@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { formatAUD, timeAgo } from "@/lib/ranking";
 
@@ -13,6 +15,19 @@ type Listing = {
   url: string;
 };
 
+function getFavicon(url: string, logoUrl: string | null) {
+  if (logoUrl) return logoUrl;
+  try {
+    let domain = url;
+    if (domain.startsWith("@")) return null;
+    if (!domain.startsWith("http")) domain = `https://${domain}`;
+    const host = new URL(domain).hostname.replace(/^www\./, "");
+    return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+  } catch {
+    return null;
+  }
+}
+
 export function RankingCard({
   rank,
   listing,
@@ -22,13 +37,14 @@ export function RankingCard({
 }) {
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
+  const favicon = getFavicon(listing.url, listing.logoUrl);
 
   const cardClass = isTop3
-    ? `rank-${rank} rounded-2xl p-4 mb-3`
+    ? `rank-${rank} rounded-2xl p-4 mb-3 shadow-sm`
     : "rounded-xl border border-neutral-200 bg-white p-4 mb-2 hover:border-neutral-300 transition";
 
   return (
-    <div className={cardClass}>
+    <div className={cardClass} id={`listing-${listing.id}`}>
       <div className="flex gap-3 sm:gap-4">
         <div className="shrink-0 pt-0.5">
           {isTop3 ? (
@@ -41,11 +57,11 @@ export function RankingCard({
         </div>
 
         <div className="shrink-0">
-          {listing.logoUrl ? (
+          {favicon ? (
             <img
-              src={listing.logoUrl}
+              src={favicon}
               alt=""
-              className="h-11 w-11 rounded-xl object-cover border border-black/5"
+              className="h-11 w-11 rounded-xl object-cover border border-black/5 bg-white"
             />
           ) : (
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-base font-semibold text-neutral-500">
@@ -87,12 +103,19 @@ export function RankingCard({
               <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500"></span>
               {listing.clicks.toLocaleString()} clicks
             </span>
-            <Link
-              href={`/?claim=${listing.id}&amount=${claimPrice / 100}`}
-              className="text-neutral-500 hover:text-black underline-offset-2 hover:underline"
+            <button
+              type="button"
+              onClick={() => {
+                const event = new CustomEvent("claim-spot", {
+                  detail: { amount: claimPrice / 100, rank: rank },
+                });
+                window.dispatchEvent(event);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="text-orange-600 hover:text-orange-700 font-medium underline-offset-2 hover:underline"
             >
               claim for {formatAUD(claimPrice)}
-            </Link>
+            </button>
           </div>
         </div>
       </div>

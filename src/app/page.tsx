@@ -3,6 +3,7 @@ import { getLeaderboard, formatAUD, getTopBidCents } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { ClaimBox } from "@/components/ClaimBox";
+import { CategoryFilter } from "@/components/CategoryFilter";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -11,12 +12,24 @@ export const revalidate = 0;
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; category?: string }>;
 }) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page || "1", 10));
-  const { listings, total } = await getLeaderboard(50, page);
+  const category = params.category || "All";
+
+  const { listings: allListings, total: allTotal } = await getLeaderboard(200, 1);
   const topBid = await getTopBidCents();
+
+  // Filter by category if needed
+  const filtered =
+    category === "All"
+      ? allListings
+      : allListings.filter((l) => l.category === category);
+
+  const total = filtered.length;
+  const start = (page - 1) * 50;
+  const listings = filtered.slice(start, start + 50);
 
   const totalRevenue = await prisma.payment.aggregate({
     where: { status: "completed" },
@@ -32,16 +45,23 @@ export default async function HomePage({
   const totalVisitors = 1327 + Math.floor(hoursSinceLaunch * 12);
   const onlineNow = 3 + Math.floor(Math.random() * 8);
 
-  const bidList = listings.map((l) => ({ id: l.id, bidCents: l.bidCents }));
+  const bidList = allListings.map((l) => ({ id: l.id, bidCents: l.bidCents }));
+
+  // Category counts for the filter
+  const categoryCounts: Record<string, number> = { All: allListings.length };
+  for (const l of allListings) {
+    categoryCounts[l.category] = (categoryCounts[l.category] || 0) + 1;
+  }
 
   return (
     <main>
-      <header className="mb-2 flex items-center justify-between">
+      {/* Header */}
+      <header className="mb-3 flex items-center justify-between">
         <Link href="/">
           <img
             src="/logo.png"
             alt="Bidboard"
-            className="h-24 w-24 rounded-xl object-contain"
+            className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-contain"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm text-neutral-500">
@@ -54,7 +74,8 @@ export default async function HomePage({
         </div>
       </header>
 
-      <div className="mb-6 flex justify-center">
+      {/* Visitor bar */}
+      <div className="mb-5 flex justify-center">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-green-500"></span>
           <span className="font-medium text-neutral-800">{onlineNow} online</span>
@@ -63,26 +84,33 @@ export default async function HomePage({
         </div>
       </div>
 
+      {/* Claim box */}
       <ClaimBox topBidCents={topBid} listings={bidList} />
+
+      {/* Category chips */}
+      <CategoryFilter current={category} counts={categoryCounts} />
 
       <ActivityFeed />
 
-      <section className="mt-6">
+      {/* Leaderboard */}
+      <section className="mt-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-600">Leaderboard</h2>
+          <h2 className="text-sm font-semibold text-neutral-600">
+            {category === "All" ? "Leaderboard" : category}
+          </h2>
           <span className="text-xs text-neutral-400">
-            {listingCount} listing{listingCount !== 1 ? "s" : ""}
+            {total} listing{total !== 1 ? "s" : ""}
           </span>
         </div>
 
         {listings.length === 0 ? (
           <div className="rounded-xl border border-dashed border-neutral-300 py-14 text-center text-neutral-500 text-sm">
-            No listings yet. Be the first to claim a spot.
+            No listings in this category yet.
           </div>
         ) : (
           <div>
             {listings.map((listing, index) => {
-              const rank = (page - 1) * 50 + index + 1;
+              const rank = start + index + 1;
               return (
                 <RankingCard
                   key={listing.id}
@@ -97,7 +125,10 @@ export default async function HomePage({
         {total > 50 && (
           <div className="mt-8 flex justify-center gap-6 text-sm">
             {page > 1 && (
-              <Link href={`/?page=${page - 1}`} className="text-neutral-600 hover:text-black">
+              <Link
+                href={`/?page=${page - 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}`}
+                className="text-neutral-600 hover:text-black"
+              >
                 ← Previous
               </Link>
             )}
@@ -105,7 +136,10 @@ export default async function HomePage({
               Page {page} of {Math.ceil(total / 50)}
             </span>
             {page * 50 < total && (
-              <Link href={`/?page=${page + 1}`} className="text-neutral-600 hover:text-black">
+              <Link
+                href={`/?page=${page + 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}`}
+                className="text-neutral-600 hover:text-black"
+              >
                 Next →
               </Link>
             )}
@@ -122,7 +156,7 @@ export default async function HomePage({
           since its launch {hoursSinceLaunch} hours ago
         </p>
         <p className="mt-4 text-xs text-neutral-400">
-          bidboard.com.au · Australia’s pay-to-rank leaderboard
+          bidboard.com.au · Australia&apos;s pay-to-rank leaderboard
         </p>
       </footer>
     </main>
