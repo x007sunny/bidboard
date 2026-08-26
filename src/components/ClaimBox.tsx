@@ -47,17 +47,18 @@ export function ClaimBox({
   }, [numericAmount, listings]);
 
   return (
-    <section className="mb-7 text-center">
+    <section className="mb-6 text-center">
       <h1 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
         Buy your position. Get seen.
       </h1>
-      <p className="mb-5 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed">
+      <p className="mb-4 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed">
         Australia&apos;s pay-to-rank business leaderboard.
         <br />
         No ads. No subscriptions. Your bid determines your rank.
       </p>
 
-      <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5 text-xl sm:text-2xl font-bold tracking-tight">
+      {/* Same size as the h1 above */}
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5 text-2xl sm:text-3xl font-bold tracking-tight">
         <span>Claim</span>
         <span className="text-indigo-600">#{predictedRank}</span>
         <span>for</span>
@@ -70,13 +71,10 @@ export function ClaimBox({
             value={amount}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") {
-                setAmount("");
-              } else {
-                setAmount(Number(v));
-              }
+              if (v === "") setAmount("");
+              else setAmount(Number(v));
             }}
-            className="w-[4.5rem] bg-transparent text-indigo-600 font-bold text-xl sm:text-2xl text-center outline-none border-none"
+            className="w-[5rem] bg-transparent text-indigo-600 font-bold text-2xl sm:text-3xl text-center outline-none border-none"
             style={{ border: "none", boxShadow: "none" }}
           />
         </span>

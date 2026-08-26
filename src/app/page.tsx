@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLeaderboard, formatAUD, getTopBidCents } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
-import { ActivityFeed } from "@/components/ActivityFeed";
+import { ActivityTicker } from "@/components/ActivityTicker";
 import { ClaimBox } from "@/components/ClaimBox";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { prisma } from "@/lib/prisma";
@@ -61,7 +61,7 @@ export default async function HomePage({
           <img
             src="/logo.png"
             alt="Bidboard"
-            className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-contain"
+            className="h-24 w-24 rounded-xl object-contain"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm text-neutral-500">
@@ -90,7 +90,7 @@ export default async function HomePage({
       {/* Category chips */}
       <CategoryFilter current={category} counts={categoryCounts} />
 
-      <ActivityFeed />
+      <ActivityTicker />
 
       {/* Leaderboard */}
       <section className="mt-5">

@@ -49,3 +49,16 @@ body {
 .rank-badge-1 { background: #4f46e5; }
 .rank-badge-2 { background: #64748b; }
 .rank-badge-3 { background: #16a34a; }
+
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-ticker {
+  display: inline-flex;
+  animation: ticker 40s linear infinite;
+}
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
