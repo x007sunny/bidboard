@@ -80,7 +80,7 @@ export function ClaimBox({
         </span>
       </div>
 
-      <p className="mb-5 text-xs text-neutral-500 max-w-md mx-auto">
+      <p className="mb-4 text-xs text-neutral-500 max-w-md mx-auto">
         New spots start at $5. Paying less than the #1 price still puts you on the board.
       </p>
 

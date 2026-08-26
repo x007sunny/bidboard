@@ -31,7 +31,7 @@ export async function ActivityTicker() {
   const loop = [...items, ...items];
 
   return (
-    <div className="mb-5 overflow-hidden border-y border-neutral-100 bg-white/60">
+    <div className="mb-3 overflow-hidden border-y border-neutral-100 bg-white/60">
       <div className="flex animate-ticker whitespace-nowrap py-2 text-xs text-neutral-500">
         {loop.map((item, i) => (
           <span key={`${item.id}-${i}`} className="mx-6 inline-flex items-center gap-1.5">

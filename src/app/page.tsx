@@ -56,7 +56,7 @@ export default async function HomePage({
   return (
     <main>
       {/* Header */}
-      <header className="mb-3 flex items-center justify-between">
+      <header className="mb-2 flex items-center justify-between">
         <Link href="/">
           <img
             src="/logo.png"
@@ -75,7 +75,7 @@ export default async function HomePage({
       </header>
 
       {/* Visitor bar */}
-      <div className="mb-5 flex justify-center">
+      <div className="mb-3 flex justify-center">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-green-500"></span>
           <span className="font-medium text-neutral-800">{onlineNow} online</span>

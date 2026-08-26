@@ -44,11 +44,6 @@ export function BidForm({
     "Other",
   ];
 
-  function updateAmount(v: number | "") {
-    setAmount(v);
-    onAmountChange?.(v);
-  }
-
   const numericAmount = amount === "" ? 0 : amount;
   const underMin = numericAmount > 0 && numericAmount < 5;
 
@@ -106,7 +101,7 @@ export function BidForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-2.5">
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
@@ -137,26 +132,20 @@ export function BidForm({
       </div>
 
       {underMin && (
-        <p className="text-sm text-red-600">
-          Pay at least $5 to claim a spot.
-        </p>
+        <p className="text-sm text-red-600">Pay at least $5 to claim a spot.</p>
       )}
+      {error && !underMin && <p className="text-sm text-red-600">{error}</p>}
 
-      {error && !underMin && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
-
-      <p className="text-xs text-neutral-500">
-        Already listed? Enter the same URL or @handle to raise your position.
-      </p>
-
-      <button
-        type="button"
-        onClick={() => setShowMore(!showMore)}
-        className="text-xs text-neutral-500 hover:text-black"
-      >
-        {showMore ? "Hide description" : "+ Add description"}
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500">
+        <span>Already listed? Enter the same URL or @handle to raise your position.</span>
+        <button
+          type="button"
+          onClick={() => setShowMore(!showMore)}
+          className="text-neutral-500 hover:text-black shrink-0"
+        >
+          {showMore ? "Hide description" : "+ Add description"}
+        </button>
+      </div>
 
       {showMore && (
         <textarea
