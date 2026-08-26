@@ -16,9 +16,8 @@ export function ClaimBox({
   listings: Listing[];
 }) {
   const defaultAmount = Math.max(Math.ceil(topBidCents / 100) + 5, 5);
-  const [amount, setAmount] = useState(defaultAmount);
+  const [amount, setAmount] = useState<number | "">(defaultAmount);
 
-  // Listen for "claim for $X" clicks from cards
   useEffect(() => {
     function onClaim(e: Event) {
       const detail = (e as CustomEvent).detail;
@@ -30,9 +29,12 @@ export function ClaimBox({
     return () => window.removeEventListener("claim-spot", onClaim);
   }, []);
 
+  const numericAmount = amount === "" ? 0 : amount;
+
   const predictedRank = useMemo(() => {
-    const amountCents = Math.round(amount * 100);
+    const amountCents = Math.round(numericAmount * 100);
     if (listings.length === 0) return 1;
+    if (amountCents < 500) return 1;
 
     let rank = 1;
     for (const listing of listings) {
@@ -42,7 +44,7 @@ export function ClaimBox({
       rank++;
     }
     return rank;
-  }, [amount, listings]);
+  }, [numericAmount, listings]);
 
   return (
     <section className="mb-7 text-center">
@@ -57,17 +59,25 @@ export function ClaimBox({
 
       <div className="mb-4 flex flex-wrap items-center justify-center gap-1.5 text-xl sm:text-2xl font-bold tracking-tight">
         <span>Claim</span>
-        <span className="text-orange-500">#{predictedRank}</span>
+        <span className="text-indigo-600">#{predictedRank}</span>
         <span>for</span>
-        <span className="inline-flex items-center text-orange-500">
+        <span className="inline-flex items-center text-indigo-600">
           $
           <input
             type="number"
-            min={5}
+            min={0}
             step={1}
             value={amount}
-            onChange={(e) => setAmount(Number(e.target.value) || 5)}
-            className="w-[4.5rem] bg-transparent border-b-2 border-orange-300 text-orange-500 font-bold text-xl sm:text-2xl text-center outline-none focus:border-orange-500"
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") {
+                setAmount("");
+              } else {
+                setAmount(Number(v));
+              }
+            }}
+            className="w-[4.5rem] bg-transparent text-indigo-600 font-bold text-xl sm:text-2xl text-center outline-none border-none"
+            style={{ border: "none", boxShadow: "none" }}
           />
         </span>
       </div>
@@ -78,9 +88,10 @@ export function ClaimBox({
 
       <div className="mx-auto max-w-2xl text-left">
         <BidForm
-          defaultAmount={amount}
-          isTopClaim={predictedRank === 1}
+          defaultAmount={numericAmount || defaultAmount}
+          amount={amount}
           onAmountChange={setAmount}
+          isTopClaim={predictedRank === 1}
         />
       </div>
     </section>

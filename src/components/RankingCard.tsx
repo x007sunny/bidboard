@@ -100,7 +100,7 @@ export function RankingCard({
               {listing.category}
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
               {listing.clicks.toLocaleString()} clicks
             </span>
             <button
@@ -112,7 +112,7 @@ export function RankingCard({
                 window.dispatchEvent(event);
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="text-orange-600 hover:text-orange-700 font-medium underline-offset-2 hover:underline"
+              className="text-indigo-600 hover:text-indigo-700 font-medium underline-offset-2 hover:underline"
             >
               claim for {formatAUD(claimPrice)}
             </button>

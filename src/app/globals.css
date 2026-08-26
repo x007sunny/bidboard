@@ -12,17 +12,26 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Hide scrollbar but keep scroll */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .rank-1 {
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-  border: 1px solid #fdba74;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
 }
 .rank-2 {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #cbd5e1;
+  border: 1px solid #e2e8f0;
 }
 .rank-3 {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border: 1px solid #fcd34d;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
 }
 
 .rank-badge {
@@ -37,6 +46,6 @@ body {
   font-weight: 700;
   color: white;
 }
-.rank-badge-1 { background: #ea580c; }
+.rank-badge-1 { background: #4f46e5; }
 .rank-badge-2 { background: #64748b; }
-.rank-badge-3 { background: #ca8a04; }
+.rank-badge-3 { background: #16a34a; }

@@ -28,26 +28,21 @@ export function CategoryFilter({
   const cats = ORDER.filter((c) => c === "All" || (counts[c] && counts[c] > 0));
 
   return (
-    <div className="mb-5 overflow-x-auto">
-      <div className="flex gap-2 pb-1 min-w-max">
+    <div className="mb-5 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {cats.map((cat) => {
           const active = current === cat;
           return (
             <Link
               key={cat}
               href={cat === "All" ? "/" : `/?category=${encodeURIComponent(cat)}`}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+              className={`rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition shrink-0 ${
                 active
-                  ? "bg-neutral-900 text-white"
+                  ? "bg-indigo-600 text-white"
                   : "bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-400"
               }`}
             >
               {cat}
-              {counts[cat] ? (
-                <span className={`ml-1.5 ${active ? "text-neutral-400" : "text-neutral-400"}`}>
-                  {counts[cat]}
-                </span>
-              ) : null}
             </Link>
           );
         })}

@@ -4,57 +4,68 @@ import { useState, useEffect } from "react";
 
 export function BidForm({
   defaultAmount = 5,
+  amount: controlledAmount,
+  onAmountChange,
   isTopClaim = false,
   existingUrl = "",
-  onAmountChange,
 }: {
   defaultAmount?: number;
+  amount?: number | "";
+  onAmountChange?: (n: number | "") => void;
   isTopClaim?: boolean;
   existingUrl?: string;
-  onAmountChange?: (n: number) => void;
 }) {
   const [url, setUrl] = useState(existingUrl);
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Other");
-  const [logoUrl, setLogoUrl] = useState("");
-  const [amount, setAmount] = useState(defaultAmount);
+  const [amount, setAmount] = useState<number | "">(controlledAmount ?? defaultAmount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
-    setAmount(defaultAmount);
-  }, [defaultAmount]);
+    if (controlledAmount !== undefined) {
+      setAmount(controlledAmount);
+    }
+  }, [controlledAmount]);
 
   const categories = [
     "Restaurants",
     "Cafes & Coffee",
     "Home Services",
+    "Trades",
     "Beauty & Wellness",
     "Auto & Transport",
     "Retail & Shops",
     "Online Shops",
     "Professional Services",
     "Health & Fitness",
-    "Trades",
     "Real Estate",
     "Other",
   ];
 
-  function updateAmount(n: number) {
-    setAmount(n);
-    onAmountChange?.(n);
+  function updateAmount(v: number | "") {
+    setAmount(v);
+    onAmountChange?.(v);
   }
+
+  const numericAmount = amount === "" ? 0 : amount;
+  const underMin = numericAmount > 0 && numericAmount < 5;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (numericAmount < 5) {
+      setError("Pay at least $5 to claim a spot.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      // Auto-fetch favicon if no logo provided and it's a website
-      let finalLogo = logoUrl.trim() || null;
-      if (!finalLogo && url && !url.trim().startsWith("@")) {
+      let finalLogo: string | null = null;
+      if (url && !url.trim().startsWith("@")) {
         try {
           let domain = url.trim();
           if (!domain.startsWith("http")) domain = `https://${domain}`;
@@ -73,7 +84,7 @@ export function BidForm({
           description: description.trim() || url.trim(),
           category,
           logoUrl: finalLogo,
-          amountCents: Math.round(amount * 100),
+          amountCents: Math.round(numericAmount * 100),
         }),
       });
 
@@ -94,8 +105,6 @@ export function BidForm({
     }
   }
 
-  const isRaise = existingUrl || false;
-
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2">
@@ -105,12 +114,12 @@ export function BidForm({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="Your website or @handle"
-          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black focus:ring-1 focus:ring-black bg-white"
+          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-black sm:w-44 bg-white"
+          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-44 bg-white"
         >
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -121,11 +130,21 @@ export function BidForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-60 whitespace-nowrap"
+          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 whitespace-nowrap"
         >
-          {loading ? "…" : isTopClaim ? "Get on the board" : "Get on the board"}
+          {loading ? "…" : "Get on the board"}
         </button>
       </div>
+
+      {underMin && (
+        <p className="text-sm text-red-600">
+          Pay at least $5 to claim a spot.
+        </p>
+      )}
+
+      {error && !underMin && (
+        <p className="text-sm text-red-600">{error}</p>
+      )}
 
       <p className="text-xs text-neutral-500">
         Already listed? Enter the same URL or @handle to raise your position.
@@ -136,30 +155,19 @@ export function BidForm({
         onClick={() => setShowMore(!showMore)}
         className="text-xs text-neutral-500 hover:text-black"
       >
-        {showMore ? "Hide extra fields" : "+ Add description & custom logo"}
+        {showMore ? "Hide description" : "+ Add description"}
       </button>
 
       {showMore && (
-        <div className="space-y-3 pt-1">
-          <textarea
-            rows={2}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Short description (optional)"
-            maxLength={280}
-            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black bg-white"
-          />
-          <input
-            type="url"
-            value={logoUrl}
-            onChange={(e) => setLogoUrl(e.target.value)}
-            placeholder="Custom logo URL (optional – we auto-fetch favicon)"
-            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-black bg-white"
-          />
-        </div>
+        <textarea
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Short description (optional)"
+          maxLength={280}
+          className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 bg-white"
+        />
       )}
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
     </form>
   );
 }
