@@ -56,12 +56,12 @@ export default async function HomePage({
   return (
     <main>
       {/* Header */}
-      <header className="mb-2 flex items-center justify-between">
+      <header className="mb-1 flex items-center justify-between py-1">
         <Link href="/">
           <img
             src="/logo.png"
             alt="Bidboard"
-            className="h-24 w-24 rounded-xl object-contain"
+            className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-contain"
           />
         </Link>
         <div className="flex items-center gap-4 text-sm text-neutral-500">
@@ -75,7 +75,7 @@ export default async function HomePage({
       </header>
 
       {/* Visitor bar */}
-      <div className="mb-3 flex justify-center">
+      <div className="mb-2 flex justify-center">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm">
           <span className="h-2 w-2 rounded-full bg-green-500"></span>
           <span className="font-medium text-neutral-800">{onlineNow} online</span>
