@@ -46,37 +46,62 @@ export function ClaimBox({
     return rank;
   }, [numericAmount, listings]);
 
+  function bump(delta: number) {
+    const base = amount === "" ? defaultAmount : amount;
+    const next = Math.max(5, base + delta);
+    setAmount(next);
+  }
+
   return (
-    <section className="mb-6 text-center">
+    <section className="mb-5 text-center">
       <h1 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
         Buy your position. Get seen.
       </h1>
-      <p className="mb-4 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed">
+      <p className="mb-3 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed">
         Australia&apos;s pay-to-rank business leaderboard.
         <br />
         No ads. No subscriptions. Your bid determines your rank.
       </p>
 
-      {/* Same size as the h1 above */}
-      <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5 text-2xl sm:text-3xl font-bold tracking-tight">
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-2 text-2xl sm:text-3xl font-bold tracking-tight">
         <span>Claim</span>
         <span className="text-indigo-600">#{predictedRank}</span>
         <span>for</span>
-        <span className="inline-flex items-center text-indigo-600">
-          $
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={amount}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "") setAmount("");
-              else setAmount(Number(v));
-            }}
-            className="w-[5rem] bg-transparent text-indigo-600 font-bold text-2xl sm:text-3xl text-center outline-none border-none"
-            style={{ border: "none", boxShadow: "none" }}
-          />
+
+        {/* Amount control with - $input + */}
+        <span className="inline-flex items-center gap-1 text-indigo-600">
+          <button
+            type="button"
+            onClick={() => bump(-1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500"
+            aria-label="Decrease bid"
+          >
+            −
+          </button>
+          <span className="inline-flex items-baseline">
+            <span className="text-indigo-600">$</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={amount}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") setAmount("");
+                else setAmount(Number(v));
+              }}
+              className="w-16 bg-transparent text-indigo-600 font-bold text-2xl sm:text-3xl text-center outline-none border-none p-0"
+              style={{ border: "none", boxShadow: "none" }}
+            />
+          </span>
+          <button
+            type="button"
+            onClick={() => bump(1)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500"
+            aria-label="Increase bid"
+          >
+            +
+          </button>
         </span>
       </div>
 

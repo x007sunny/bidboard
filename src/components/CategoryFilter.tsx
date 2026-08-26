@@ -19,8 +19,7 @@ const ORDER = [
   "Other",
 ];
 
-// Show these first on mobile; rest go in "More"
-const PRIMARY = ["All", "Restaurants", "Retail & Shops", "Professional Services"];
+const PRIMARY = ["All", "Restaurants", "Retail & Shops", "Other"];
 
 export function CategoryFilter({
   current,
@@ -31,13 +30,18 @@ export function CategoryFilter({
 }) {
   const [open, setOpen] = useState(false);
   const cats = ORDER.filter((c) => c === "All" || (counts[c] && counts[c] > 0));
-  const primary = cats.filter((c) => PRIMARY.includes(c));
-  const more = cats.filter((c) => !PRIMARY.includes(c));
+  const primary = cats.filter((c) => PRIMARY.includes(c)).slice(0, 3);
+  // Always include All first
+  const mobilePrimary = [
+    ...cats.filter((c) => c === "All"),
+    ...cats.filter((c) => c !== "All" && PRIMARY.includes(c)).slice(0, 2),
+  ];
+  const more = cats.filter((c) => !mobilePrimary.includes(c));
   const currentInMore = more.includes(current);
 
   return (
     <div className="mb-4">
-      {/* Desktop: all chips */}
+      {/* Desktop: all chips, wrap ok */}
       <div className="hidden sm:flex gap-2 flex-wrap">
         {cats.map((cat) => {
           const active = current === cat;
@@ -57,15 +61,15 @@ export function CategoryFilter({
         })}
       </div>
 
-      {/* Mobile: primary + More dropdown */}
-      <div className="flex sm:hidden items-center gap-2 flex-wrap">
-        {primary.map((cat) => {
+      {/* Mobile: ONE row only */}
+      <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap">
+        {mobilePrimary.map((cat) => {
           const active = current === cat;
           return (
             <Link
               key={cat}
               href={cat === "All" ? "/" : `/?category=${encodeURIComponent(cat)}`}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 transition ${
                 active
                   ? "bg-indigo-600 text-white"
                   : "bg-white border border-neutral-200 text-neutral-600"
@@ -77,11 +81,11 @@ export function CategoryFilter({
         })}
 
         {more.length > 0 && (
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setOpen(!open)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium border whitespace-nowrap transition ${
                 currentInMore
                   ? "bg-indigo-600 text-white border-indigo-600"
                   : "bg-white border-neutral-200 text-neutral-600"
@@ -91,11 +95,8 @@ export function CategoryFilter({
             </button>
             {open && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setOpen(false)}
-                />
-                <div className="absolute left-0 top-full mt-1 z-20 min-w-[160px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg">
+                <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+                <div className="absolute right-0 top-full mt-1 z-20 min-w-[150px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg max-h-64 overflow-y-auto">
                   {more.map((cat) => (
                     <Link
                       key={cat}
