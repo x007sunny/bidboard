@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 const ORDER = [
@@ -19,8 +19,6 @@ const ORDER = [
   "Other",
 ];
 
-const PRIMARY = ["All", "Restaurants", "Retail & Shops", "Other"];
-
 export function CategoryFilter({
   current,
   counts,
@@ -29,19 +27,31 @@ export function CategoryFilter({
   counts: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const cats = ORDER.filter((c) => c === "All" || (counts[c] && counts[c] > 0));
-  const primary = cats.filter((c) => PRIMARY.includes(c)).slice(0, 3);
-  // Always include All first
   const mobilePrimary = [
     ...cats.filter((c) => c === "All"),
-    ...cats.filter((c) => c !== "All" && PRIMARY.includes(c)).slice(0, 2),
+    ...cats.filter((c) => c !== "All").slice(0, 2),
   ];
   const more = cats.filter((c) => !mobilePrimary.includes(c));
   const currentInMore = more.includes(current);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
   return (
     <div className="mb-4">
-      {/* Desktop: all chips, wrap ok */}
+      {/* Desktop */}
       <div className="hidden sm:flex gap-2 flex-wrap">
         {cats.map((cat) => {
           const active = current === cat;
@@ -61,7 +71,7 @@ export function CategoryFilter({
         })}
       </div>
 
-      {/* Mobile: ONE row only */}
+      {/* Mobile: single row */}
       <div className="flex sm:hidden items-center gap-1.5 overflow-x-auto no-scrollbar flex-nowrap">
         {mobilePrimary.map((cat) => {
           const active = current === cat;
@@ -81,10 +91,14 @@ export function CategoryFilter({
         })}
 
         {more.length > 0 && (
-          <div className="relative shrink-0">
+          <div className="relative shrink-0" ref={menuRef}>
             <button
               type="button"
-              onClick={() => setOpen(!open)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setOpen((v) => !v);
+              }}
               className={`rounded-full px-3 py-1.5 text-xs font-medium border whitespace-nowrap transition ${
                 currentInMore
                   ? "bg-indigo-600 text-white border-indigo-600"
@@ -93,24 +107,22 @@ export function CategoryFilter({
             >
               {currentInMore ? current : "More"} ▾
             </button>
+
             {open && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 min-w-[150px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg max-h-64 overflow-y-auto">
-                  {more.map((cat) => (
-                    <Link
-                      key={cat}
-                      href={`/?category=${encodeURIComponent(cat)}`}
-                      onClick={() => setOpen(false)}
-                      className={`block px-3.5 py-2 text-xs hover:bg-neutral-50 ${
-                        current === cat ? "font-semibold text-indigo-600" : "text-neutral-700"
-                      }`}
-                    >
-                      {cat}
-                    </Link>
-                  ))}
-                </div>
-              </>
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-xl border border-neutral-200 bg-white py-1 shadow-lg max-h-64 overflow-y-auto">
+                {more.map((cat) => (
+                  <Link
+                    key={cat}
+                    href={`/?category=${encodeURIComponent(cat)}`}
+                    onClick={() => setOpen(false)}
+                    className={`block px-3.5 py-2.5 text-xs hover:bg-neutral-50 ${
+                      current === cat ? "font-semibold text-indigo-600" : "text-neutral-700"
+                    }`}
+                  >
+                    {cat}
+                  </Link>
+                ))}
+              </div>
             )}
           </div>
         )}

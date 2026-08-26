@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { formatAUD, timeAgo } from "@/lib/ranking";
 
 type Listing = {
@@ -43,8 +42,30 @@ export function RankingCard({
     ? `rank-${rank} rounded-2xl p-4 mb-3 shadow-sm`
     : "rounded-xl border border-neutral-200 bg-white p-4 mb-2 hover:border-neutral-300 transition";
 
+  function goToSite() {
+    window.open(`/api/click/${listing.id}`, "_blank", "noopener,noreferrer");
+  }
+
+  function onClaim(e: React.MouseEvent) {
+    e.stopPropagation();
+    const event = new CustomEvent("claim-spot", {
+      detail: { amount: claimPrice / 100, rank },
+    });
+    window.dispatchEvent(event);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   return (
-    <div className={cardClass} id={`listing-${listing.id}`}>
+    <div
+      className={`${cardClass} cursor-pointer`}
+      id={`listing-${listing.id}`}
+      onClick={goToSite}
+      role="link"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") goToSite();
+      }}
+    >
       <div className="flex gap-3 sm:gap-4">
         <div className="shrink-0 pt-0.5">
           {isTop3 ? (
@@ -73,14 +94,9 @@ export function RankingCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0">
-              <a
-                href={`/api/click/${listing.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-black hover:underline text-[15px] leading-snug"
-              >
+              <span className="font-semibold text-black text-[15px] leading-snug">
                 {listing.title}
-              </a>
+              </span>
               {listing.description && (
                 <p className="mt-1 text-sm text-neutral-600 leading-relaxed line-clamp-2">
                   {listing.description}
@@ -105,13 +121,7 @@ export function RankingCard({
             </span>
             <button
               type="button"
-              onClick={() => {
-                const event = new CustomEvent("claim-spot", {
-                  detail: { amount: claimPrice / 100, rank: rank },
-                });
-                window.dispatchEvent(event);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              onClick={onClaim}
               className="text-indigo-600 hover:text-indigo-700 font-medium underline-offset-2 hover:underline"
             >
               claim for {formatAUD(claimPrice)}
