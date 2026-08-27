@@ -19,7 +19,7 @@ export default function RulesPage() {
             <li>Highest bid = highest rank. Nothing else matters.</li>
             <li>To take #1 you must bid at least $5 more than the current top bid.</li>
             <li>Paying less still puts you on the board at whatever rank that amount can reach.</li>
-            <li>Already listed? Enter the same URL or @handle and only pay the difference to raise your position.</li>
+            <li>Already listed? Enter the same website and only pay the difference to raise your position.</li>
             <li>Equal bids: the older listing keeps the higher rank.</li>
           </ul>
         </section>
@@ -27,7 +27,8 @@ export default function RulesPage() {
         <section>
           <h2 className="font-semibold text-black mb-2">What you can list</h2>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li>A business website, online shop, or an X @handle.</li>
+            <li>A business website or online shop.</li>
+            <li>@handles are not allowed — use a website URL only.</li>
             <li>Chat and invite links are not allowed.</li>
             <li>Illegal or adult content is not allowed.</li>
           </ul>

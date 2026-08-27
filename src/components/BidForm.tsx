@@ -1,6 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+
+function extractHost(input: string): string | null {
+  const raw = input.trim();
+  if (!raw || raw.startsWith("@")) return null;
+  try {
+    const withProto = raw.startsWith("http") ? raw : `https://${raw}`;
+    const host = new URL(withProto).hostname.replace(/^www\./, "");
+    if (!host.includes(".") || host.length < 3) return null;
+    return host;
+  } catch {
+    return null;
+  }
+}
 
 export function BidForm({
   defaultAmount = 5,
@@ -44,12 +57,27 @@ export function BidForm({
     "Other",
   ];
 
+  const host = useMemo(() => extractHost(url), [url]);
+  const liveFavicon = host
+    ? `https://www.google.com/s2/favicons?domain=${host}&sz=64`
+    : null;
+
   const numericAmount = amount === "" ? 0 : amount;
   const underMin = numericAmount > 0 && numericAmount < 5;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (url.trim().startsWith("@")) {
+      setError("Please enter a website URL, not an @handle.");
+      return;
+    }
+
+    if (!extractHost(url)) {
+      setError("Please enter a valid website like yourproduct.com");
+      return;
+    }
 
     if (numericAmount < 5) {
       setError("Pay at least $5 to claim a spot.");
@@ -59,17 +87,7 @@ export function BidForm({
     setLoading(true);
 
     try {
-      let finalLogo: string | null = null;
-      if (url && !url.trim().startsWith("@")) {
-        try {
-          let domain = url.trim();
-          if (!domain.startsWith("http")) domain = `https://${domain}`;
-          const host = new URL(domain).hostname.replace(/^www\./, "");
-          finalLogo = `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
-        } catch {
-          // ignore
-        }
-      }
+      const finalLogo = liveFavicon;
 
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -103,14 +121,25 @@ export function BidForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-2.5">
       <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          required
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Your website or @handle"
-          className="flex-1 rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white"
-        />
+        <div className="relative flex-1">
+          {liveFavicon && (
+            <img
+              src={liveFavicon}
+              alt=""
+              className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 rounded-sm bg-white"
+            />
+          )}
+          <input
+            type="text"
+            required
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="yourproduct.com"
+            className={`w-full rounded-xl border border-neutral-300 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 ${
+              liveFavicon ? "pl-10 pr-3.5" : "px-3.5"
+            }`}
+          />
+        </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -137,7 +166,7 @@ export function BidForm({
       {error && !underMin && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500">
-        <span>Already listed? Enter the same URL or @handle to raise your position.</span>
+        <span>Already listed? Enter the same website to raise your position.</span>
         <button
           type="button"
           onClick={() => setShowMore(!showMore)}

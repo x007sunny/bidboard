@@ -112,11 +112,21 @@ export default async function HomePage({
             {listings.map((listing, index) => {
               const rank = start + index + 1;
               return (
-                <RankingCard
-                  key={listing.id}
-                  rank={rank}
-                  listing={listing}
-                />
+                <div key={listing.id}>
+                  <RankingCard
+                    rank={rank}
+                    listing={listing}
+                  />
+                  {rank === 3 && listings.length > 3 && (
+                    <div className="my-3 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-neutral-200" />
+                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
+                        Top 3
+                      </span>
+                      <div className="h-px flex-1 bg-neutral-200" />
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

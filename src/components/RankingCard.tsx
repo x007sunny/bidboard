@@ -39,8 +39,14 @@ export function RankingCard({
   const favicon = getFavicon(listing.url, listing.logoUrl);
 
   const cardClass = isTop3
-    ? `rank-${rank} rounded-2xl p-4 mb-3 shadow-sm`
-    : "rounded-xl border border-neutral-200 bg-white p-4 mb-2 hover:border-neutral-300 transition";
+    ? `rounded-2xl p-4 mb-3 border ${
+        rank === 1
+          ? "bg-gradient-to-r from-indigo-100 to-indigo-50 border-indigo-300"
+          : rank === 2
+          ? "bg-gradient-to-r from-indigo-50 to-slate-50 border-indigo-200"
+          : "bg-gradient-to-r from-indigo-50/70 to-white border-indigo-100"
+      }`
+    : "rounded-2xl border border-neutral-200 bg-white p-4 mb-2 hover:border-neutral-300 transition";
 
   function goToSite() {
     window.open(`/api/click/${listing.id}`, "_blank", "noopener,noreferrer");
@@ -66,7 +72,7 @@ export function RankingCard({
         if (e.key === "Enter") goToSite();
       }}
     >
-      <div className="flex gap-3 sm:gap-4">
+      <div className="flex gap-3 sm:gap-4 items-start">
         <div className="shrink-0 pt-0.5">
           {isTop3 ? (
             <span className={`rank-badge rank-badge-${rank}`}>#{rank}</span>
@@ -104,7 +110,7 @@ export function RankingCard({
               )}
             </div>
             <div className="text-right shrink-0">
-              <div className="text-base font-bold tracking-tight">
+              <div className={`text-base font-bold tracking-tight ${isTop3 ? "text-indigo-600" : ""}`}>
                 {formatAUD(listing.bidCents)}
               </div>
             </div>
@@ -116,7 +122,7 @@ export function RankingCard({
               {listing.category}
             </span>
             <span className="flex items-center gap-1">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
               {listing.clicks.toLocaleString()} clicks
             </span>
             <button

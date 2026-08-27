@@ -17,7 +17,20 @@ export async function POST(req: NextRequest) {
     const json = await req.json();
     const body = bodySchema.parse(json);
 
+    if (body.url.trim().startsWith("@")) {
+      return NextResponse.json(
+        { error: "Please enter a website URL, not an @handle." },
+        { status: 400 }
+      );
+    }
+
     const { uniqueKey, title, isHandle } = normalizeUrlOrHandle(body.url);
+    if (isHandle) {
+      return NextResponse.json(
+        { error: "Please enter a website URL, not an @handle." },
+        { status: 400 }
+      );
+    }
 
     const lower = (body.url + " " + body.description).toLowerCase();
     if (
