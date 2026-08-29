@@ -39,6 +39,47 @@ function duckDuckGoIcon(url: string) {
   }
 }
 
+function CrownBadge({ rank }: { rank: 1 | 2 | 3 }) {
+  const fill =
+    rank === 1 ? "#f5c518" : rank === 2 ? "#c5cdd6" : "#d08a4c";
+  const crown =
+    rank === 1 ? "#fff8dc" : rank === 2 ? "#ffffff" : "#fff1e0";
+
+  return (
+    <span
+      className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+      style={{ background: fill }}
+      aria-label={`#${rank}`}
+    >
+      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+        <path
+          d="M4.5 16.5 7 8.5l5 4.5 5-4.5 2.5 8H4.5Z"
+          fill={crown}
+        />
+        <path
+          d="M5 18.2h14v1.6H5z"
+          fill={crown}
+        />
+        <circle cx="7" cy="8.2" r="1.35" fill={crown} />
+        <circle cx="12" cy="6.4" r="1.45" fill={crown} />
+        <circle cx="17" cy="8.2" r="1.35" fill={crown} />
+      </svg>
+    </span>
+  );
+}
+
+const CARD_BY_RANK: Record<number, string> = {
+  1: "rounded-2xl p-4 mb-3 border-2 border-[#e4b81a] bg-gradient-to-r from-[#fff4c4] to-[#fffbeb]",
+  2: "rounded-2xl p-4 mb-3 border-2 border-[#b8c0c8] bg-gradient-to-r from-[#eef1f4] to-[#f8fafc]",
+  3: "rounded-2xl p-4 mb-3 border-2 border-[#c67b3e] bg-gradient-to-r from-[#f6dfc8] to-[#fdf6ee]",
+};
+
+const PRICE_BY_RANK: Record<number, string> = {
+  1: "text-[#b8860b]",
+  2: "text-slate-600",
+  3: "text-[#b45309]",
+};
+
 export function RankingCard({
   rank,
   listing,
@@ -53,13 +94,7 @@ export function RankingCard({
   const [imgSrc, setImgSrc] = useState<string | null>(listing.logoUrl || fallbackIcon);
 
   const cardClass = isTop3
-    ? `rounded-2xl p-4 mb-3 border ${
-        rank === 1
-          ? "bg-gradient-to-r from-indigo-100 to-indigo-50 border-indigo-300"
-          : rank === 2
-          ? "bg-gradient-to-r from-indigo-50 to-slate-50 border-indigo-200"
-          : "bg-gradient-to-r from-indigo-50/70 to-white border-indigo-100"
-      }`
+    ? CARD_BY_RANK[rank]
     : "rounded-2xl border border-neutral-200 bg-white p-4 mb-2 hover:border-neutral-300 transition";
 
   function goToSite() {
@@ -88,8 +123,8 @@ export function RankingCard({
     >
       <div className="flex gap-3 sm:gap-4 items-start">
         <div className="shrink-0 pt-0.5">
-          {isTop3 ? (
-            <span className={`rank-badge rank-badge-${rank}`}>#{rank}</span>
+          {rank === 1 || rank === 2 || rank === 3 ? (
+            <CrownBadge rank={rank} />
           ) : (
             <span className="flex h-7 w-7 items-center justify-center text-sm font-medium text-neutral-400">
               #{rank}
@@ -127,7 +162,7 @@ export function RankingCard({
             </span>
             <div
               className={`shrink-0 text-base font-bold tracking-tight ${
-                isTop3 ? "text-indigo-600" : ""
+                PRICE_BY_RANK[rank] || ""
               }`}
             >
               {formatAUD(listing.bidCents)}

@@ -34,16 +34,16 @@ body {
 }
 
 .rank-1 {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  border: 1px solid #c7d2fe;
+  background: linear-gradient(135deg, #fff4c4 0%, #fffbeb 100%);
+  border: 2px solid #e4b81a;
 }
 .rank-2 {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #eef1f4 0%, #f8fafc 100%);
+  border: 2px solid #b8c0c8;
 }
 .rank-3 {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border: 1px solid #bbf7d0;
+  background: linear-gradient(135deg, #f6dfc8 0%, #fdf6ee 100%);
+  border: 2px solid #c67b3e;
 }
 
 .rank-badge {
