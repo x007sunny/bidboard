@@ -13,7 +13,7 @@ export type WebsiteMetadata = {
 const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
 const BOT_WALL_RE =
-  /pardon our interruption|just a moment|attention required|access denied|checking your browser|enable javascript|you are a bot|you were a bot|think you were a bot|as you were browsing|cf-browser-verification|challenge-platform|cdn-cgi\/challenge|akamai|bot manager|blocked because|unusual traffic|verify you are human|captcha/i;
+  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|verify you are (a )?human|unusual traffic from your computer/i;
 
 function isBlockedHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.+$/, "");
@@ -159,7 +159,9 @@ function cleanedDomainName(hostname: string): string {
 }
 
 function isChallengePage(html: string, title = "", description = ""): boolean {
-  return BOT_WALL_RE.test(`${title} ${description} ${html.slice(0, 12000)}`);
+  if (BOT_WALL_RE.test(`${title} ${description}`)) return true;
+  const snippet = html.slice(0, 4000);
+  return BOT_WALL_RE.test(snippet);
 }
 
 function isJunkText(text: string): boolean {
