@@ -1,4 +1,4 @@
-const FETCH_TIMEOUT_MS = 8000;
+const FETCH_TIMEOUT_MS = 6000;
 const MAX_HTML_BYTES = 600_000;
 const TITLE_MAX = 140;
 const DESCRIPTION_MAX = 280;
@@ -222,13 +222,47 @@ async function readHtml(res: Response): Promise<string> {
   return html;
 }
 
+function jsonLdNameAndDescription(html: string): { name: string | null; description: string | null } {
+  const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  let name: string | null = null;
+  let description: string | null = null;
+  for (const block of blocks) {
+    const inner = block.replace(/^<script[^>]*>/i, "").replace(/<\/script>$/i, "");
+    try {
+      const parsed = JSON.parse(inner);
+      const nodes = Array.isArray(parsed) ? parsed : parsed["@graph"] ? parsed["@graph"] : [parsed];
+      for (const node of nodes) {
+        if (!node || typeof node !== "object") continue;
+        const type = String(node["@type"] || "");
+        if (!name && node.name && /organization|localbusiness|website|store/i.test(type + " " + (node.name || ""))) {
+          name = String(node.name);
+        }
+        if (!name && node.name && type) name = String(node.name);
+        if (!description && node.description) description = String(node.description);
+      }
+    } catch {
+      // ignore invalid json-ld
+    }
+  }
+  return { name, description };
+}
+
+function isChallengePage(html: string, title: string): boolean {
+  const t = title.toLowerCase();
+  if (t.includes("just a moment") || t.includes("attention required") || t === "access denied") {
+    return true;
+  }
+  return /cf-browser-verification|challenge-platform|cdn-cgi\/challenge/i.test(html);
+}
+
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
   const pageUrl = normalizeWebsiteUrl(rawUrl);
   const fallbackTitle = cleanedDomainName(pageUrl.hostname);
+  const fallbackImage = googleFaviconUrl(pageUrl.hostname);
   const empty: WebsiteMetadata = {
     title: fallbackTitle,
     description: "",
-    imageUrl: null,
+    imageUrl: fallbackImage,
     canonicalUrl: pageUrl.toString(),
   };
 
@@ -241,34 +275,47 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
       redirect: "follow",
       signal: controller.signal,
       headers: {
-        Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-AU,en;q=0.9",
         "User-Agent":
-          "Mozilla/5.0 (compatible; BidboardBot/1.0; +https://bidboard.com.au)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
       },
     });
-
-    if (!res.ok) return empty;
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!/text\/html|application\/xhtml\+xml/i.test(contentType) && contentType) {
-      // still try if content-type is missing/odd, skip obvious non-html
-      if (/json|image|pdf|octet-stream|javascript/i.test(contentType)) return empty;
-    }
 
     const html = await readHtml(res);
     if (!html) return empty;
 
+    if (isChallengePage(html, titleTag(html) || "")) {
+      return empty;
+    }
+
+    if (!res.ok) return empty;
+
+    const contentType = res.headers.get("content-type") || "";
+    if (/json|image|pdf|octet-stream|javascript/i.test(contentType) && !/html/i.test(contentType)) {
+      return empty;
+    }
+
+    const ld = jsonLdNameAndDescription(html);
     const ogTitle = metaContent(html, ["og:title"]);
     const twitterTitle = metaContent(html, ["twitter:title"]);
     const htmlTitle = titleTag(html);
     const title =
-      sanitizeText(ogTitle || twitterTitle || htmlTitle || fallbackTitle, TITLE_MAX) ||
-      fallbackTitle;
+      sanitizeText(
+        ogTitle || twitterTitle || ld.name || htmlTitle || fallbackTitle,
+        TITLE_MAX
+      ) || fallbackTitle;
+
+    if (isChallengePage(html, title)) return empty;
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
     const twitterDesc = metaContent(html, ["twitter:description"]);
-    let description = sanitizeText(ogDesc || metaDesc || twitterDesc || "", DESCRIPTION_MAX);
+    let description = sanitizeText(
+      ogDesc || metaDesc || twitterDesc || ld.description || "",
+      DESCRIPTION_MAX
+    );
     if (!description) {
       description = pageTextFallback(html);
     }
@@ -287,7 +334,7 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     return {
       title,
       description,
-      imageUrl,
+      imageUrl: imageUrl || fallbackImage,
       canonicalUrl: pageUrl.toString(),
     };
   } catch {
@@ -296,3 +343,4 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     clearTimeout(timer);
   }
 }
+

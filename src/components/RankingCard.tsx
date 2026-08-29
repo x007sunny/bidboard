@@ -20,7 +20,20 @@ function googleFavicon(url: string) {
     let domain = url;
     if (!domain.startsWith("http")) domain = `https://${domain}`;
     const host = new URL(domain).hostname.replace(/^www\./, "");
+    if (!host.includes(".")) return null;
     return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
+  } catch {
+    return null;
+  }
+}
+
+function duckDuckGoIcon(url: string) {
+  try {
+    let domain = url;
+    if (!domain.startsWith("http")) domain = `https://${domain}`;
+    const host = new URL(domain).hostname.replace(/^www\./, "");
+    if (!host.includes(".")) return null;
+    return `https://icons.duckduckgo.com/ip3/${host}.ico`;
   } catch {
     return null;
   }
@@ -36,6 +49,7 @@ export function RankingCard({
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
   const fallbackIcon = googleFavicon(listing.url);
+  const extraFallback = duckDuckGoIcon(listing.url);
   const [imgSrc, setImgSrc] = useState<string | null>(listing.logoUrl || fallbackIcon);
 
   const cardClass = isTop3
@@ -90,8 +104,13 @@ export function RankingCard({
               alt=""
               className="h-11 w-11 rounded-xl object-contain border border-black/5 bg-white"
               onError={() => {
-                if (fallbackIcon && imgSrc !== fallbackIcon) setImgSrc(fallbackIcon);
-                else setImgSrc(null);
+                if (fallbackIcon && imgSrc !== fallbackIcon) {
+                  setImgSrc(fallbackIcon);
+                } else if (extraFallback && imgSrc !== extraFallback) {
+                  setImgSrc(extraFallback);
+                } else {
+                  setImgSrc(null);
+                }
               }}
             />
           ) : (
