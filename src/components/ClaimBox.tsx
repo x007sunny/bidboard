@@ -53,21 +53,19 @@ export function ClaimBox({
   }
 
   return (
-    <section className="mb-5 grid items-center gap-4 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:gap-5">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl leading-[1.15]">
-          Buy your position.
-          <br />
-          <span className="text-indigo-600">Get seen.</span>
+    <section className="mb-5 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="lg:max-w-[26rem] lg:shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight leading-[1.15] sm:text-[2.15rem]">
+          <span className="block md:whitespace-nowrap">Buy your position.</span>
+          <span className="block md:whitespace-nowrap text-indigo-600">Get seen.</span>
         </h1>
-        <p className="mt-3 text-sm text-neutral-600 max-w-sm leading-relaxed dark:text-neutral-400">
-          Australia's pay-to-rank business leaderboard.
-          <br />
-          No ads. No subscriptions. Your bid determines your rank.
+        <p className="mt-3 text-sm text-neutral-600 leading-6 dark:text-neutral-400">
+          <span className="block md:whitespace-nowrap">Australia's pay-to-rank business leaderboard.</span>
+          <span className="block md:whitespace-nowrap">No ads. No subscriptions. Your bid determines your rank.</span>
         </p>
       </div>
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="w-full min-w-0 lg:max-w-[32rem] rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xl sm:text-2xl font-bold tracking-tight">
           <span>Claim</span>
           <span className="text-indigo-600">#{predictedRank}</span>
