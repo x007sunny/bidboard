@@ -180,7 +180,67 @@ function isGenericTitle(text: string): boolean {
 function usefulTitle(raw: string | null | undefined, max = TITLE_MAX): string | null {
   const t = sanitizeText(raw || "", max);
   if (!t || isGenericTitle(t) || isJunkText(t)) return null;
+  if (/\b(logo|icon|sprite)\b$/i.test(t)) return null;
   return t;
+}
+
+function isPromoDescription(text: string): boolean {
+  const s = text.trim().toLowerCase();
+  if (s.length < 40) return true;
+  if (/^(spend|save |off |buy \d|link your|sign up|subscribe|use code)/i.test(s)) return true;
+  if (/participating product|limited time|promo code|click here/i.test(s)) return true;
+  if (/traditional custodians|elders past|aboriginal and torres/i.test(s)) return true;
+  if (/return policy|hours of operation|what is your phone|used to get facts/i.test(s)) return true;
+  return false;
+}
+
+function usefulDescription(raw: string | null | undefined): string | null {
+  const t = sanitizeText(raw || "", DESCRIPTION_MAX);
+  if (!t || isJunkText(t) || isPromoDescription(t)) return null;
+  return t;
+}
+
+function unescapeJsonString(value: string): string {
+  return value
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\n/g, " ")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\");
+}
+
+function jsonStringValues(html: string, keys: string[]): string[] {
+  const out: string[] = [];
+  for (const key of keys) {
+    const re = new RegExp(`"${key}"\\s*:\\s*"((?:\\\\.|[^"\\\\])*)"`, "gi");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html))) {
+      const v = unescapeJsonString(m[1]).trim();
+      if (v) out.push(v);
+    }
+  }
+  return out;
+}
+
+function pickBestTitle(candidates: Array<string | null | undefined>): string | null {
+  const list = [...new Set(candidates.map((c) => usefulTitle(c)).filter(Boolean))] as string[];
+  if (list.length === 0) return null;
+  const scored = list.map((t) => {
+    let score = Math.min(t.length, 80);
+    if (/[|–—]/.test(t)) score += 50;
+    if (t.split(/\s+/).length >= 4) score += 20;
+    if (t.length < 14) score -= 25;
+    return { t, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored[0].t;
+}
+
+function pickBestDescription(candidates: Array<string | null | undefined>): string {
+  for (const c of candidates) {
+    const t = usefulDescription(c);
+    if (t) return t;
+  }
+  return "";
 }
 
 function pageTextFallback(html: string): string {
@@ -334,22 +394,42 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     const siteName = usefulTitle(
       metaContent(html, ["og:site_name", "application-name", "apple-mobile-web-app-title"])
     );
+    const jsonTitles = jsonStringValues(html, [
+      "metaTitle",
+      "seoTitle",
+      "seo_title",
+    ]);
 
-    let title =
-      ogTitle || htmlTitle || siteName || usefulTitle(ld.name) || twitterTitle || fallbackTitle;
-    if (isJunkText(title) || isGenericTitle(title)) {
-      title = htmlTitle || siteName || usefulTitle(ld.name) || fallbackTitle;
-    }
+    const title =
+      pickBestTitle([
+        ...jsonTitles,
+        ogTitle,
+        htmlTitle,
+        twitterTitle,
+        siteName,
+        ld.name,
+      ]) || fallbackTitle;
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
     const twitterDesc = metaContent(html, ["twitter:description"]);
-    let description = sanitizeText(
-      ogDesc || metaDesc || twitterDesc || ld.description || "",
-      DESCRIPTION_MAX
+    const jsonDescs = jsonStringValues(html, ["metaDescription", "seoDescription", "seo_description"]);
+    const pairedSeo = html.match(
+      /"metaTitle"\s*:\s*"(?:\\.|[^"\\])*"[\s\S]{0,500}?"description"\s*:\s*"((?:\\.|[^"\\])*)"/i
     );
+    const pairedDesc = pairedSeo ? unescapeJsonString(pairedSeo[1]) : null;
+
+    let description = pickBestDescription([
+      pairedDesc,
+      ...jsonDescs,
+      metaDesc,
+      ogDesc,
+      twitterDesc,
+      ld.description,
+    ]);
     if (!description) {
       description = pageTextFallback(html);
+      if (isPromoDescription(description) || isJunkText(description)) description = "";
     }
 
     if (isJunkText(description) || isChallengePage(html, title, description)) {
