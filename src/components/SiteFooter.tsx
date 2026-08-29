@@ -26,8 +26,8 @@ export function SiteFooter({
         <Link href="/privacy" className="hover:text-black dark:hover:text-white">
           Privacy
         </Link>
-        <Link href="/rules" className="hover:text-black dark:hover:text-white">
-          Rules
+        <Link href="/about" className="hover:text-black dark:hover:text-white">
+          About
         </Link>
       </div>
       <p className="mt-4 text-xs text-neutral-400">
