@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { getLeaderboard, formatAUD, getTopBidCents } from "@/lib/ranking";
+import { getLeaderboard, getTopBidCents } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { ClaimBox } from "@/components/ClaimBox";
 import { CategoryFilter } from "@/components/CategoryFilter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -66,15 +67,6 @@ export default async function HomePage({
 
       {/* Leaderboard */}
       <section className="mt-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
-            {category === "All" ? "Leaderboard" : category}
-          </h2>
-          <span className="text-xs text-neutral-400">
-            {total} listing{total !== 1 ? "s" : ""}
-          </span>
-        </div>
-
         {listings.length === 0 ? (
           <div className="rounded-xl border border-dashed border-neutral-300 py-14 text-center text-neutral-500 text-sm">
             No listings in this category yet.
@@ -129,18 +121,7 @@ export default async function HomePage({
         )}
       </section>
 
-      <footer className="mt-14 border-t border-neutral-200 pt-7 pb-5 text-center dark:border-neutral-800">
-        <p className="text-sm text-neutral-500">This simple side project made</p>
-        <p className="mt-1 text-2xl font-bold tracking-tight">
-          {formatAUD(revenueCents)}
-        </p>
-        <p className="mt-1 text-sm text-neutral-400">
-          since its launch {hoursSinceLaunch} hours ago
-        </p>
-        <p className="mt-4 text-xs text-neutral-400">
-          bidboard.com.au · Australia&apos;s pay-to-rank leaderboard
-        </p>
-      </footer>
+      <SiteFooter revenueCents={revenueCents} hoursSinceLaunch={hoursSinceLaunch} />
     </main>
   );
 }

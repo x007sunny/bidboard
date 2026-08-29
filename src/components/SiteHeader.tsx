@@ -14,7 +14,7 @@ export function SiteHeader({
         <img
           src="/logo.png"
           alt="Bidboard"
-          className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-contain"
+          className="h-6 w-6 rounded-md object-contain"
         />
       </Link>
 
@@ -30,7 +30,9 @@ export function SiteHeader({
       )}
 
       <nav className="flex shrink-0 items-center gap-2 sm:gap-3 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
-        <ThemeToggle />
+        <Link href="/" className="hover:text-black dark:hover:text-white transition">
+          Leaderboard
+        </Link>
         <Link href="/categories" className="hover:text-black dark:hover:text-white transition">
           Categories
         </Link>
@@ -40,6 +42,7 @@ export function SiteHeader({
         <Link href="/about" className="hover:text-black dark:hover:text-white transition">
           About
         </Link>
+        <ThemeToggle />
       </nav>
     </header>
   );

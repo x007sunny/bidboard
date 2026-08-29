@@ -27,6 +27,16 @@ function googleFavicon(url: string) {
   }
 }
 
+function listingHost(url: string) {
+  try {
+    let domain = url;
+    if (!domain.startsWith("http")) domain = `https://${domain}`;
+    return new URL(domain).hostname.replace(/^www\./, "");
+  } catch {
+    return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
+  }
+}
+
 function duckDuckGoIcon(url: string) {
   try {
     let domain = url;
@@ -166,24 +176,28 @@ export function RankingCard({
               </div>
             </div>
             {listing.description && (
-              <p className="mt-1 text-sm text-neutral-600 truncate dark:text-neutral-300">
+              <p
+                className={`mt-1 text-sm text-neutral-600 dark:text-neutral-300 ${
+                  isTop3 ? "line-clamp-2" : "truncate"
+                }`}
+              >
                 {listing.description}
               </p>
             )}
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <span>{listing.category}</span>
+              <span className="text-neutral-300">·</span>
               <span>{timeAgo(listing.lastBidAt)}</span>
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-neutral-600 dark:bg-white/10 dark:text-neutral-300">
-                {listing.category}
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                {listing.clicks.toLocaleString()} clicks
-              </span>
+              <span className="text-neutral-300">·</span>
+              <span className="truncate">{listingHost(listing.url)}</span>
+              <span className="text-neutral-300">·</span>
+              <span>{listing.clicks.toLocaleString()} clicks</span>
+              <span className="text-neutral-300">·</span>
               <button
                 type="button"
                 onClick={onClaim}
-                className="rounded-full bg-indigo-50 px-2 py-0.5 font-medium text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/30"
+                className="font-medium text-indigo-600 hover:underline dark:text-indigo-300"
               >
                 Claim for {formatAUD(claimPrice)}
               </button>

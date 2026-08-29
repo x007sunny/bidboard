@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { CATEGORIES } from "@/lib/categories";
 import { formatAUD, timeAgo } from "@/lib/ranking";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,7 @@ export default async function CategoriesPage() {
       {groups.length === 0 && (
         <p className="text-sm text-neutral-500">No listings yet.</p>
       )}
+      <SiteFooter />
     </main>
   );
 }

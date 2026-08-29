@@ -59,9 +59,8 @@ export function ClaimBox({
           <span className="block md:whitespace-nowrap">Buy your position.</span>
           <span className="block md:whitespace-nowrap text-indigo-600">Get seen.</span>
         </h1>
-        <p className="mt-3 text-sm text-neutral-600 leading-6 dark:text-neutral-400">
-          <span className="block md:whitespace-nowrap">Australia's pay-to-rank business leaderboard.</span>
-          <span className="block md:whitespace-nowrap">No ads. No subscriptions. Your bid determines your rank.</span>
+        <p className="mt-3 text-sm text-neutral-600 leading-6 dark:text-neutral-400 md:whitespace-nowrap">
+          Australia's pay-to-rank business leaderboard.
         </p>
       </div>
 
@@ -106,9 +105,7 @@ export function ClaimBox({
           </span>
         </div>
         <p className="mb-4 text-xs text-neutral-500">
-          New spots start at $5.
-          <br />
-          Paying less than the #1 price still puts you on the board.
+          New spots start at $5. Paying less than the #1 price still puts you on the board.
         </p>
         <BidForm
           defaultAmount={numericAmount || defaultAmount}
