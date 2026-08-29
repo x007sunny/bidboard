@@ -47,13 +47,20 @@ export function normalizeWebsiteUrl(input: string): URL {
 }
 
 function decodeEntities(raw: string): string {
+  const amp = "&" + "amp;";
+  const quot = "&" + "quot;";
+  const apos = "&" + "apos;";
+  const lt = "&" + "lt;";
+  const gt = "&" + "gt;";
+  const nbsp = "&" + "nbsp;";
   return raw
-    .replace(/&nbsp;/gi, " ")
-    .replace(/&/gi, "&")
-    .replace(/"/gi, '"')
-    .replace(/&#39;|'/gi, "'")
-    .replace(/</gi, "<")
-    .replace(/>/gi, ">")
+    .replace(new RegExp(nbsp, "gi"), " ")
+    .replace(new RegExp(amp, "gi"), "&")
+    .replace(new RegExp(quot, "gi"), '"')
+    .replace(/&#39;/g, "'")
+    .replace(new RegExp(apos, "gi"), "'")
+    .replace(new RegExp(lt, "gi"), "<")
+    .replace(new RegExp(gt, "gi"), ">")
     .replace(/&#(\d+);/g, (_, n) => {
       const code = Number(n);
       if (!code || code < 32) return "";
@@ -161,6 +168,36 @@ function pageTextFallback(html: string): string {
   return sanitizeText(source, DESCRIPTION_MAX);
 }
 
+function googleFaviconUrl(hostname: string): string {
+  const host = hostname.replace(/^www\./i, "");
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`;
+}
+
+function isIco(url: string): boolean {
+  return /\.ico(\?|$)/i.test(url) || /\/favicon\.ico/i.test(url);
+}
+
+function pickListingImage(
+  pageUrl: URL,
+  images: {
+    appleIcon: string | null;
+    favicon: string | null;
+    ogImage: string | null;
+    twitterImage: string | null;
+  }
+): string {
+  // 44px card avatar: prefer square icons, skip broken .ico CDN wrappers
+  const icons = [images.appleIcon, images.favicon].filter((u): u is string => !!u && !isIco(u));
+  if (icons[0]) return icons[0];
+
+  const photos = [images.ogImage, images.twitterImage].filter(
+    (u): u is string => !!u && !isIco(u)
+  );
+  if (photos[0]) return photos[0];
+
+  return googleFaviconUrl(pageUrl.hostname);
+}
+
 async function readHtml(res: Response): Promise<string> {
   const reader = res.body?.getReader();
   if (!reader) {
@@ -239,12 +276,13 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     const ogImage = metaContent(html, ["og:image", "og:image:url"]);
     const twitterImage = metaContent(html, ["twitter:image", "twitter:image:src"]);
     const appleIcon = linkHref(html, ["apple-touch-icon", "apple-touch-icon-precomposed"]);
-    const favicon = linkHref(html, ["icon", "shortcut icon", "apple-touch-icon"]);
-    const imageUrl =
-      toAbsolute(pageUrl, ogImage) ||
-      toAbsolute(pageUrl, twitterImage) ||
-      toAbsolute(pageUrl, appleIcon) ||
-      toAbsolute(pageUrl, favicon);
+    const favicon = linkHref(html, ["icon", "shortcut icon"]);
+    const imageUrl = pickListingImage(pageUrl, {
+      appleIcon: toAbsolute(pageUrl, appleIcon),
+      favicon: toAbsolute(pageUrl, favicon),
+      ogImage: toAbsolute(pageUrl, ogImage),
+      twitterImage: toAbsolute(pageUrl, twitterImage),
+    });
 
     return {
       title,

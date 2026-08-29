@@ -111,12 +111,10 @@ export async function POST(req: NextRequest) {
           price_data: {
             currency: "aud",
             product_data: {
-              name: existing
-                ? `Raise bid for ${title}`
-                : `Bid for ${title} on bidboard.com.au`,
+              name: `Get ${title} on the board`,
               description: existing
                 ? `Increase bid from $${(existing.bidCents / 100).toFixed(0)} to $${(body.amountCents / 100).toFixed(0)}`
-                : (description || title).slice(0, 200),
+                : "Listing on bidboard.com.au",
             },
             unit_amount: amountToCharge,
           },

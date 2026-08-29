@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatAUD, timeAgo } from "@/lib/ranking";
 
 type Listing = {
@@ -14,11 +15,9 @@ type Listing = {
   url: string;
 };
 
-function getFavicon(url: string, logoUrl: string | null) {
-  if (logoUrl) return logoUrl;
+function googleFavicon(url: string) {
   try {
     let domain = url;
-    if (domain.startsWith("@")) return null;
     if (!domain.startsWith("http")) domain = `https://${domain}`;
     const host = new URL(domain).hostname.replace(/^www\./, "");
     return `https://www.google.com/s2/favicons?domain=${host}&sz=128`;
@@ -36,7 +35,8 @@ export function RankingCard({
 }) {
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
-  const favicon = getFavicon(listing.url, listing.logoUrl);
+  const fallbackIcon = googleFavicon(listing.url);
+  const [imgSrc, setImgSrc] = useState<string | null>(listing.logoUrl || fallbackIcon);
 
   const cardClass = isTop3
     ? `rounded-2xl p-4 mb-3 border ${
@@ -84,11 +84,15 @@ export function RankingCard({
         </div>
 
         <div className="shrink-0">
-          {favicon ? (
+          {imgSrc ? (
             <img
-              src={favicon}
+              src={imgSrc}
               alt=""
-              className="h-11 w-11 rounded-xl object-cover border border-black/5 bg-white"
+              className="h-11 w-11 rounded-xl object-contain border border-black/5 bg-white"
+              onError={() => {
+                if (fallbackIcon && imgSrc !== fallbackIcon) setImgSrc(fallbackIcon);
+                else setImgSrc(null);
+              }}
             />
           ) : (
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-neutral-100 text-base font-semibold text-neutral-500">
@@ -98,23 +102,23 @@ export function RankingCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <div className="min-w-0">
-              <span className="font-semibold text-black text-[15px] leading-snug">
-                {listing.title}
-              </span>
-              {listing.description && (
-                <p className="mt-1 text-sm text-neutral-600 leading-relaxed line-clamp-2">
-                  {listing.description}
-                </p>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <div className={`text-base font-bold tracking-tight ${isTop3 ? "text-indigo-600" : ""}`}>
-                {formatAUD(listing.bidCents)}
-              </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate font-semibold text-black text-[15px] leading-snug">
+              {listing.title}
+            </span>
+            <div
+              className={`shrink-0 text-base font-bold tracking-tight ${
+                isTop3 ? "text-indigo-600" : ""
+              }`}
+            >
+              {formatAUD(listing.bidCents)}
             </div>
           </div>
+          {listing.description && (
+            <p className="mt-1 text-sm text-neutral-600 leading-relaxed line-clamp-2">
+              {listing.description}
+            </p>
+          )}
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
             <span>{timeAgo(listing.lastBidAt)}</span>
