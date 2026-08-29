@@ -14,7 +14,7 @@ export function SiteHeader({
         <img
           src="/logo.png"
           alt="Bidboard"
-          className="h-6 w-6 rounded-md object-contain"
+          className="h-15 w-30 rounded-md object-contain"
         />
       </Link>
 
