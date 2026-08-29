@@ -12,6 +12,9 @@ export type WebsiteMetadata = {
 
 const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
 
+const BOT_WALL_RE =
+  /pardon our interruption|just a moment|attention required|access denied|checking your browser|enable javascript|you are a bot|you were a bot|think you were a bot|as you were browsing|cf-browser-verification|challenge-platform|cdn-cgi\/challenge|akamai|bot manager|blocked because|unusual traffic|verify you are human|captcha/i;
+
 function isBlockedHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.+$/, "");
   if (BLOCKED_HOSTS.has(host)) return true;
@@ -155,6 +158,14 @@ function cleanedDomainName(hostname: string): string {
   return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function isChallengePage(html: string, title = "", description = ""): boolean {
+  return BOT_WALL_RE.test(`${title} ${description} ${html.slice(0, 12000)}`);
+}
+
+function isJunkText(text: string): boolean {
+  return !!text && BOT_WALL_RE.test(text);
+}
+
 function pageTextFallback(html: string): string {
   const withoutNoise = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -186,7 +197,6 @@ function pickListingImage(
     twitterImage: string | null;
   }
 ): string {
-  // 44px card avatar: prefer square icons, skip broken .ico CDN wrappers
   const icons = [images.appleIcon, images.favicon].filter((u): u is string => !!u && !isIco(u));
   if (icons[0]) return icons[0];
 
@@ -247,14 +257,6 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
   return { name, description };
 }
 
-function isChallengePage(html: string, title: string): boolean {
-  const t = title.toLowerCase();
-  if (t.includes("just a moment") || t.includes("attention required") || t === "access denied") {
-    return true;
-  }
-  return /cf-browser-verification|challenge-platform|cdn-cgi\/challenge/i.test(html);
-}
-
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
   const pageUrl = normalizeWebsiteUrl(rawUrl);
   const fallbackTitle = cleanedDomainName(pageUrl.hostname);
@@ -301,13 +303,13 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     const ogTitle = metaContent(html, ["og:title"]);
     const twitterTitle = metaContent(html, ["twitter:title"]);
     const htmlTitle = titleTag(html);
-    const title =
+
+    let title =
       sanitizeText(
         ogTitle || twitterTitle || ld.name || htmlTitle || fallbackTitle,
         TITLE_MAX
       ) || fallbackTitle;
-
-    if (isChallengePage(html, title)) return empty;
+    if (isJunkText(title)) title = fallbackTitle;
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
@@ -318,6 +320,10 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     );
     if (!description) {
       description = pageTextFallback(html);
+    }
+
+    if (isJunkText(description) || isChallengePage(html, title, description)) {
+      return empty;
     }
 
     const ogImage = metaContent(html, ["og:image", "og:image:url"]);
@@ -343,4 +349,3 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     clearTimeout(timer);
   }
 }
-
