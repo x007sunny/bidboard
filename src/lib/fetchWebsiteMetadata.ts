@@ -168,6 +168,21 @@ function isJunkText(text: string): boolean {
   return !!text && BOT_WALL_RE.test(text);
 }
 
+function isGenericTitle(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (!t) return true;
+  if (/^(home|homepage|index|welcome|untitled|default|new page|page not found|404|home page)(\s*[\|–—:-].*)?$/.test(t)) {
+    return true;
+  }
+  return false;
+}
+
+function usefulTitle(raw: string | null | undefined, max = TITLE_MAX): string | null {
+  const t = sanitizeText(raw || "", max);
+  if (!t || isGenericTitle(t) || isJunkText(t)) return null;
+  return t;
+}
+
 function pageTextFallback(html: string): string {
   const withoutNoise = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -236,7 +251,8 @@ async function readHtml(res: Response): Promise<string> {
 
 function jsonLdNameAndDescription(html: string): { name: string | null; description: string | null } {
   const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
-  let name: string | null = null;
+  let orgName: string | null = null;
+  let pageName: string | null = null;
   let description: string | null = null;
   for (const block of blocks) {
     const inner = block.replace(/^<script[^>]*>/i, "").replace(/<\/script>$/i, "");
@@ -246,17 +262,27 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
       for (const node of nodes) {
         if (!node || typeof node !== "object") continue;
         const type = String(node["@type"] || "");
-        if (!name && node.name && /organization|localbusiness|website|store/i.test(type + " " + (node.name || ""))) {
-          name = String(node.name);
+        if (/BreadcrumbList|ListItem/i.test(type)) continue;
+        const rawName = typeof node.name === "string" ? node.name : null;
+        const name = usefulTitle(rawName);
+        if (name && !orgName && /organization|localbusiness|store|plumber|electrician|company/i.test(type)) {
+          orgName = name;
         }
-        if (!name && node.name && type) name = String(node.name);
-        if (!description && node.description) description = String(node.description);
+        if (name && !orgName && /website/i.test(type)) {
+          orgName = name;
+        }
+        if (name && !pageName && /webpage/i.test(type)) {
+          pageName = name;
+        }
+        if (!description && typeof node.description === "string") {
+          description = node.description;
+        }
       }
     } catch {
       // ignore invalid json-ld
     }
   }
-  return { name, description };
+  return { name: orgName || pageName, description };
 }
 
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
@@ -302,16 +328,18 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     }
 
     const ld = jsonLdNameAndDescription(html);
-    const ogTitle = metaContent(html, ["og:title"]);
-    const twitterTitle = metaContent(html, ["twitter:title"]);
-    const htmlTitle = titleTag(html);
+    const ogTitle = usefulTitle(metaContent(html, ["og:title"]));
+    const twitterTitle = usefulTitle(metaContent(html, ["twitter:title"]));
+    const htmlTitle = usefulTitle(titleTag(html));
+    const siteName = usefulTitle(
+      metaContent(html, ["og:site_name", "application-name", "apple-mobile-web-app-title"])
+    );
 
     let title =
-      sanitizeText(
-        ogTitle || twitterTitle || ld.name || htmlTitle || fallbackTitle,
-        TITLE_MAX
-      ) || fallbackTitle;
-    if (isJunkText(title)) title = fallbackTitle;
+      ogTitle || htmlTitle || siteName || usefulTitle(ld.name) || twitterTitle || fallbackTitle;
+    if (isJunkText(title) || isGenericTitle(title)) {
+      title = htmlTitle || siteName || usefulTitle(ld.name) || fallbackTitle;
+    }
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
