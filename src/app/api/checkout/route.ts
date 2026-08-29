@@ -3,14 +3,18 @@ import { z } from "zod";
 import { stripe, MIN_BID_CENTS, MAX_BID_CENTS } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
+import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
-  description: z.string().min(1).max(500),
+  description: z.string().max(500).optional(),
   category: z.string().min(1).max(100),
-  logoUrl: z.string().url().nullable().optional(),
   amountCents: z.number().int().min(MIN_BID_CENTS).max(MAX_BID_CENTS),
 });
+
+function stripeSafe(value: string, max = 490): string {
+  return value.replace(/[\u0000-\u001f]/g, "").slice(0, max);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { uniqueKey, title, isHandle } = normalizeUrlOrHandle(body.url);
+    const { uniqueKey, title: domainTitle, isHandle } = normalizeUrlOrHandle(body.url);
     if (isHandle) {
       return NextResponse.json(
         { error: "Please enter a website URL, not an @handle." },
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const lower = (body.url + " " + body.description).toLowerCase();
+    const lower = body.url.toLowerCase();
     if (
       lower.includes("telegram") ||
       lower.includes("whatsapp") ||
@@ -70,6 +74,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    let fetched = {
+      title: domainTitle,
+      description: "",
+      imageUrl: null as string | null,
+      canonicalUrl: body.url.trim(),
+    };
+    try {
+      fetched = await fetchWebsiteMetadata(body.url);
+    } catch {
+      // Listing submission must never fail because metadata fetch failed.
+    }
+
+    const optionalDescription = body.description?.trim() || "";
+    const title = fetched.title || domainTitle;
+    const description = optionalDescription || fetched.description || "";
+    const logoUrl = fetched.imageUrl || "";
+    const storedUrl = fetched.canonicalUrl || body.url.trim();
+
     const payment = await prisma.payment.create({
       data: {
         listingId: existing?.id ?? null,
@@ -94,7 +116,7 @@ export async function POST(req: NextRequest) {
                 : `Bid for ${title} on bidboard.com.au`,
               description: existing
                 ? `Increase bid from $${(existing.bidCents / 100).toFixed(0)} to $${(body.amountCents / 100).toFixed(0)}`
-                : body.description.slice(0, 200),
+                : (description || title).slice(0, 200),
             },
             unit_amount: amountToCharge,
           },
@@ -105,14 +127,14 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/?cancelled=1`,
       metadata: {
         paymentId: payment.id,
-        uniqueKey,
-        title,
-        description: body.description,
-        category: body.category,
-        logoUrl: body.logoUrl || "",
+        uniqueKey: stripeSafe(uniqueKey),
+        title: stripeSafe(title),
+        description: stripeSafe(description),
+        category: stripeSafe(body.category, 100),
+        logoUrl: stripeSafe(logoUrl),
         newBidCents: String(body.amountCents),
-        isHandle: String(isHandle),
-        url: body.url,
+        isHandle: "false",
+        url: stripeSafe(storedUrl),
         existingListingId: existing?.id ?? "",
       },
     });

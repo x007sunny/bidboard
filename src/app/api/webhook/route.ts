@@ -51,9 +51,11 @@ export async function POST(req: NextRequest) {
             where: { id: existingId },
             data: {
               bidCents: newBidCents,
+              title: meta.title || undefined,
               description: meta.description || undefined,
               category: meta.category || undefined,
               logoUrl: meta.logoUrl || undefined,
+              url: meta.url || undefined,
               lastBidAt: new Date(),
             },
           });
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
             data: {
               uniqueKey: meta.uniqueKey,
               url: meta.url || meta.uniqueKey,
-              title: meta.title,
+              title: meta.title || meta.uniqueKey,
               description: meta.description || "",
               category: meta.category || "Other",
               logoUrl: meta.logoUrl || null,

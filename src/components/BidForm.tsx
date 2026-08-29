@@ -87,18 +87,19 @@ export function BidForm({
     setLoading(true);
 
     try {
-      const finalLogo = liveFavicon;
+      const payload: Record<string, unknown> = {
+        url: url.trim(),
+        category,
+        amountCents: Math.round(numericAmount * 100),
+      };
+      if (description.trim()) {
+        payload.description = description.trim();
+      }
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          url: url.trim(),
-          description: description.trim() || url.trim(),
-          category,
-          logoUrl: finalLogo,
-          amountCents: Math.round(numericAmount * 100),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
