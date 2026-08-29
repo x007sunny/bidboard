@@ -53,7 +53,7 @@ export function ClaimBox({
   }
 
   return (
-    <section className="mb-5 grid items-center gap-6 md:grid-cols-2 md:gap-8">
+    <section className="mb-5 grid items-center gap-4 md:grid-cols-[minmax(0,280px)_minmax(0,1fr)] md:gap-5">
       <div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl leading-[1.15]">
           Buy your position.

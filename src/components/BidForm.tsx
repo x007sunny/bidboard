@@ -126,7 +126,7 @@ export function BidForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-36 bg-white dark:bg-neutral-950 dark:border-neutral-700 dark:text-white"
+          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-32 bg-white dark:bg-neutral-950 dark:border-neutral-700 dark:text-white"
         >
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>

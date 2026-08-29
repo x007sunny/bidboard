@@ -37,7 +37,6 @@ export default async function HomePage({
     _sum: { amountCents: true },
   });
   const revenueCents = totalRevenue._sum.amountCents || 0;
-  const listingCount = await prisma.listing.count();
 
   const launchDate = new Date("2026-08-23T00:00:00Z");
   const hoursSinceLaunch = Math.floor(
