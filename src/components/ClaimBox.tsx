@@ -57,7 +57,7 @@ export function ClaimBox({
       <h1 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
         Buy your position. Get seen.
       </h1>
-      <p className="mb-3 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed">
+      <p className="mb-3 text-sm text-neutral-600 max-w-md mx-auto leading-relaxed dark:text-neutral-400">
         Australia&apos;s pay-to-rank business leaderboard.
         <br />
         No ads. No subscriptions. Your bid determines your rank.
@@ -73,7 +73,7 @@ export function ClaimBox({
           <button
             type="button"
             onClick={() => bump(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500 dark:border-indigo-500/40 dark:hover:bg-indigo-500/10"
             aria-label="Decrease bid"
           >
             −
@@ -97,7 +97,7 @@ export function ClaimBox({
           <button
             type="button"
             onClick={() => bump(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 text-lg leading-none hover:bg-indigo-50 text-indigo-500 dark:border-indigo-500/40 dark:hover:bg-indigo-500/10"
             aria-label="Increase bid"
           >
             +

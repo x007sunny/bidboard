@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Hide native number input spinners */
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
@@ -10,7 +12,6 @@ input[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
-
 
 html, body {
   margin: 0;
@@ -24,26 +25,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Hide scrollbar but keep scroll */
+html.dark body {
+  background: #0f0f12;
+  color: #f4f4f5;
+}
+
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
-}
-
-.rank-1 {
-  background: linear-gradient(135deg, #fff4c4 0%, #fffbeb 100%);
-  border: 2px solid #e4b81a;
-}
-.rank-2 {
-  background: linear-gradient(135deg, #eef1f4 0%, #f8fafc 100%);
-  border: 2px solid #b8c0c8;
-}
-.rank-3 {
-  background: linear-gradient(135deg, #f6dfc8 0%, #fdf6ee 100%);
-  border: 2px solid #c67b3e;
 }
 
 .rank-badge {
@@ -60,8 +52,7 @@ body {
 }
 .rank-badge-1 { background: #4f46e5; }
 .rank-badge-2 { background: #64748b; }
-.rank-badge-3 { background: #16a34a; }
-
+.rank-badge-3 { background: #b45309; }
 
 @keyframes ticker {
   0% { transform: translateX(0); }
@@ -69,7 +60,7 @@ body {
 }
 .animate-ticker {
   display: inline-flex;
-  animation: ticker 40s linear infinite;
+  animation: ticker 110s linear infinite;
 }
 .animate-ticker:hover {
   animation-play-state: paused;

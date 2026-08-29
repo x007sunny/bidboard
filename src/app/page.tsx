@@ -4,6 +4,7 @@ import { RankingCard } from "@/components/RankingCard";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { ClaimBox } from "@/components/ClaimBox";
 import { CategoryFilter } from "@/components/CategoryFilter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -64,11 +65,12 @@ export default async function HomePage({
             className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-contain"
           />
         </Link>
-        <div className="flex items-center gap-4 text-sm text-neutral-500">
-          <Link href="/rules" className="hover:text-black transition">
+        <div className="flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400">
+          <ThemeToggle />
+          <Link href="/rules" className="hover:text-black dark:hover:text-white transition">
             Rules
           </Link>
-          <Link href="/about" className="hover:text-black transition">
+          <Link href="/about" className="hover:text-black dark:hover:text-white transition">
             About
           </Link>
         </div>
@@ -76,9 +78,9 @@ export default async function HomePage({
 
       {/* Visitor bar */}
       <div className="mb-2 flex justify-center">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
           <span className="h-2 w-2 rounded-full bg-green-500"></span>
-          <span className="font-medium text-neutral-800">{onlineNow} online</span>
+          <span className="font-medium text-neutral-800 dark:text-neutral-100">{onlineNow} online</span>
           <span className="text-neutral-300">·</span>
           <span>{totalVisitors.toLocaleString()} visitors since launch</span>
         </div>
@@ -95,7 +97,7 @@ export default async function HomePage({
       {/* Leaderboard */}
       <section className="mt-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-600">
+          <h2 className="text-sm font-semibold text-neutral-600 dark:text-neutral-300">
             {category === "All" ? "Leaderboard" : category}
           </h2>
           <span className="text-xs text-neutral-400">
@@ -119,11 +121,11 @@ export default async function HomePage({
                   />
                   {rank === 3 && listings.length > 3 && (
                     <div className="my-3 flex items-center gap-3">
-                      <div className="h-px flex-1 bg-neutral-200" />
-                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase">
+                      <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
+                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase dark:border-neutral-700 dark:bg-neutral-900">
                         Top 3
                       </span>
-                      <div className="h-px flex-1 bg-neutral-200" />
+                      <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
                     </div>
                   )}
                 </div>
@@ -157,7 +159,7 @@ export default async function HomePage({
         )}
       </section>
 
-      <footer className="mt-14 border-t border-neutral-200 pt-7 pb-5 text-center">
+      <footer className="mt-14 border-t border-neutral-200 pt-7 pb-5 text-center dark:border-neutral-800">
         <p className="text-sm text-neutral-500">This simple side project made</p>
         <p className="mt-1 text-2xl font-bold tracking-tight">
           {formatAUD(revenueCents)}

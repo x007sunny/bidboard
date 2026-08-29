@@ -4,14 +4,14 @@ export default function RulesPage() {
   return (
     <main>
       <header className="mb-8">
-        <Link href="/" className="text-sm text-neutral-500 hover:text-black">
+        <Link href="/" className="text-sm text-neutral-500 hover:text-black dark:hover:text-white">
           ← Back
         </Link>
       </header>
 
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Rules</h1>
 
-      <div className="space-y-6 text-sm text-neutral-700 leading-relaxed max-w-lg">
+      <div className="space-y-6 text-sm text-neutral-700 leading-relaxed max-w-lg dark:text-neutral-300">
         <section>
           <h2 className="font-semibold text-black mb-2">How ranking works</h2>
           <ul className="list-disc pl-5 space-y-1.5">

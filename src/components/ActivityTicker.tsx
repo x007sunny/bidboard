@@ -100,13 +100,13 @@ export async function ActivityTicker() {
   const loop = [...events, ...events];
 
   return (
-    <div className="mb-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-      <div className="flex animate-ticker whitespace-nowrap py-2 text-xs text-neutral-600">
+    <div className="mb-3 overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="flex animate-ticker whitespace-nowrap py-2 text-xs text-neutral-600 dark:text-neutral-300">
         {loop.map((item) => (
           <Link
             key={item.key}
             href={`/#listing-${item.listingId}`}
-            className="mx-5 inline-flex items-center gap-2 hover:text-black"
+            className="mx-5 inline-flex items-center gap-2 hover:text-black dark:hover:text-white"
           >
             <span
               className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-white ${
@@ -124,7 +124,7 @@ export async function ActivityTicker() {
               )}
             </span>
             <span>
-              <span className="font-medium text-neutral-800">{shortTitle(item.title)}</span>
+              <span className="font-medium text-neutral-800 dark:text-neutral-100">{shortTitle(item.title)}</span>
               {" "}
               {item.verb} #{item.rank}
               <span className="text-neutral-400"> · </span>

@@ -14,8 +14,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-AU">
-      <body className="min-h-screen antialiased bg-[#fafafa] text-neutral-900">
+    <html lang="en-AU" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem('bidboard-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen antialiased bg-[#fafafa] text-neutral-900 dark:bg-[#0f0f12] dark:text-neutral-100">
         <div className="mx-auto max-w-4xl px-4 pt-0 pb-6 sm:px-6">
           {children}
         </div>

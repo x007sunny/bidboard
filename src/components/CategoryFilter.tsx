@@ -39,7 +39,7 @@ export function CategoryFilter({
               className={`rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 transition ${
                 active
                   ? "bg-indigo-600 text-white"
-                  : "bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-400"
+                  : "bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-400 dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-300 dark:hover:border-neutral-500"
               }`}
             >
               {cat}

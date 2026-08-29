@@ -136,7 +136,7 @@ export function BidForm({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="yourproduct.com"
-            className={`w-full rounded-xl border border-neutral-300 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 ${
+            className={`w-full rounded-xl border border-neutral-300 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600 ${
               liveFavicon ? "pl-10 pr-3.5" : "px-3.5"
             }`}
           />
@@ -144,7 +144,7 @@ export function BidForm({
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-44 bg-white"
+          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-44 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-white"
         >
           {categories.map((c) => (
             <option key={c} value={c}>
@@ -171,7 +171,7 @@ export function BidForm({
         <button
           type="button"
           onClick={() => setShowMore(!showMore)}
-          className="text-neutral-500 hover:text-black shrink-0"
+          className="text-neutral-500 hover:text-black shrink-0 dark:hover:text-white"
         >
           {showMore ? "Hide description" : "+ Add description"}
         </button>
@@ -184,7 +184,7 @@ export function BidForm({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Short description (optional)"
           maxLength={280}
-          className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 bg-white"
+          className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-white"
         />
       )}
     </form>
