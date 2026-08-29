@@ -4,7 +4,7 @@ import { RankingCard } from "@/components/RankingCard";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { ClaimBox } from "@/components/ClaimBox";
 import { CategoryFilter } from "@/components/CategoryFilter";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -56,37 +56,8 @@ export default async function HomePage({
 
   return (
     <main>
-      {/* Header */}
-      <header className="mb-1 flex items-center justify-between py-1">
-        <Link href="/">
-          <img
-            src="/logo.png"
-            alt="Bidboard"
-            className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl object-contain"
-          />
-        </Link>
-        <div className="flex items-center gap-3 text-sm text-neutral-500 dark:text-neutral-400">
-          <ThemeToggle />
-          <Link href="/rules" className="hover:text-black dark:hover:text-white transition">
-            Rules
-          </Link>
-          <Link href="/about" className="hover:text-black dark:hover:text-white transition">
-            About
-          </Link>
-        </div>
-      </header>
+      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
 
-      {/* Visitor bar */}
-      <div className="mb-2 flex justify-center">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-white border border-neutral-200 px-3.5 py-1.5 text-sm text-neutral-500 shadow-sm dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400">
-          <span className="h-2 w-2 rounded-full bg-green-500"></span>
-          <span className="font-medium text-neutral-800 dark:text-neutral-100">{onlineNow} online</span>
-          <span className="text-neutral-300">·</span>
-          <span>{totalVisitors.toLocaleString()} visitors since launch</span>
-        </div>
-      </div>
-
-      {/* Claim box */}
       <ClaimBox topBidCents={topBid} listings={bidList} />
 
       {/* Category chips */}

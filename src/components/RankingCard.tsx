@@ -167,7 +167,7 @@ export function RankingCard({
               </div>
             </div>
             {listing.description && (
-              <p className="mt-1 text-sm text-neutral-600 leading-relaxed line-clamp-2 dark:text-neutral-300">
+              <p className="mt-1 text-sm text-neutral-600 truncate dark:text-neutral-300">
                 {listing.description}
               </p>
             )}

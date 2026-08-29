@@ -2,20 +2,7 @@
 
 import { saveListing } from "@/app/admin/actions";
 
-const CATEGORIES = [
-  "Restaurants",
-  "Cafes & Coffee",
-  "Home Services",
-  "Trades",
-  "Beauty & Wellness",
-  "Auto & Transport",
-  "Retail & Shops",
-  "Online Shops",
-  "Professional Services",
-  "Health & Fitness",
-  "Real Estate",
-  "Other",
-];
+import { CATEGORIES } from "@/lib/categories";
 
 type Listing = {
   id: string;

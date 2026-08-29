@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { CATEGORIES } from "@/lib/categories";
 
 function extractHost(input: string): string | null {
   const raw = input.trim();
@@ -18,8 +19,6 @@ function extractHost(input: string): string | null {
 export function BidForm({
   defaultAmount = 5,
   amount: controlledAmount,
-  onAmountChange,
-  isTopClaim = false,
   existingUrl = "",
 }: {
   defaultAmount?: number;
@@ -29,33 +28,16 @@ export function BidForm({
   existingUrl?: string;
 }) {
   const [url, setUrl] = useState(existingUrl);
-  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("Other");
   const [amount, setAmount] = useState<number | "">(controlledAmount ?? defaultAmount);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (controlledAmount !== undefined) {
       setAmount(controlledAmount);
     }
   }, [controlledAmount]);
-
-  const categories = [
-    "Restaurants",
-    "Cafes & Coffee",
-    "Home Services",
-    "Trades",
-    "Beauty & Wellness",
-    "Auto & Transport",
-    "Retail & Shops",
-    "Online Shops",
-    "Professional Services",
-    "Health & Fitness",
-    "Real Estate",
-    "Other",
-  ];
 
   const host = useMemo(() => extractHost(url), [url]);
   const liveFavicon = host
@@ -87,19 +69,14 @@ export function BidForm({
     setLoading(true);
 
     try {
-      const payload: Record<string, unknown> = {
-        url: url.trim(),
-        category,
-        amountCents: Math.round(numericAmount * 100),
-      };
-      if (description.trim()) {
-        payload.description = description.trim();
-      }
-
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          url: url.trim(),
+          category,
+          amountCents: Math.round(numericAmount * 100),
+        }),
       });
 
       const data = await res.json();
@@ -123,12 +100,19 @@ export function BidForm({
     <form onSubmit={handleSubmit} className="space-y-2.5">
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
-          {liveFavicon && (
+          {liveFavicon ? (
             <img
               src={liveFavicon}
               alt=""
               className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 rounded-sm bg-white"
             />
+          ) : (
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+            </span>
           )}
           <input
             type="text"
@@ -136,17 +120,15 @@ export function BidForm({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="yourproduct.com"
-            className={`w-full rounded-xl border border-neutral-300 py-2.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-900 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600 ${
-              liveFavicon ? "pl-10 pr-3.5" : "px-3.5"
-            }`}
+            className="w-full rounded-xl border border-neutral-300 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-950 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-44 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-white"
+          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-36 bg-white dark:bg-neutral-950 dark:border-neutral-700 dark:text-white"
         >
-          {categories.map((c) => (
+          {CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -155,7 +137,7 @@ export function BidForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 whitespace-nowrap"
+          className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 whitespace-nowrap"
         >
           {loading ? "…" : "Get on the board"}
         </button>
@@ -166,27 +148,9 @@ export function BidForm({
       )}
       {error && !underMin && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-neutral-500">
-        <span>Already listed? Enter the same website to raise your position.</span>
-        <button
-          type="button"
-          onClick={() => setShowMore(!showMore)}
-          className="text-neutral-500 hover:text-black shrink-0 dark:hover:text-white"
-        >
-          {showMore ? "Hide description" : "+ Add description"}
-        </button>
-      </div>
-
-      {showMore && (
-        <textarea
-          rows={2}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Short description (optional)"
-          maxLength={280}
-          className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 bg-white dark:bg-neutral-900 dark:border-neutral-700 dark:text-white"
-        />
-      )}
+      <p className="text-xs text-neutral-500">
+        Already listed? Enter the same website to raise your position.
+      </p>
     </form>
   );
 }
