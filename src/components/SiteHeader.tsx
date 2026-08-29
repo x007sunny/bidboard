@@ -29,12 +29,12 @@ export function SiteHeader({
         </div>
       )}
 
-      <nav className="flex shrink-0 items-center gap-2 sm:gap-3 text-sm text-neutral-500 dark:text-neutral-400">
+      <nav className="flex shrink-0 items-center gap-2 sm:gap-3 text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
         <ThemeToggle />
         <Link href="/categories" className="hover:text-black dark:hover:text-white transition">
           Categories
         </Link>
-        <Link href="/rules" className="hover:text-black dark:hover:text-white transition hidden sm:inline">
+        <Link href="/rules" className="hover:text-black dark:hover:text-white transition">
           Rules
         </Link>
         <Link href="/about" className="hover:text-black dark:hover:text-white transition">

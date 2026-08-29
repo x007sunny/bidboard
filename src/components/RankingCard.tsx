@@ -103,7 +103,7 @@ export function RankingCard({
   }
 
   return (
-    <div className={isTop3 ? "relative mb-5 pt-4" : "mb-2"}>
+    <div className={isTop3 ? "relative mb-2 pt-3" : "mb-2"}>
       {isTop3 && (
         <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2">
           <CrownBadge rank={rank as 1 | 2 | 3} />
@@ -120,17 +120,16 @@ export function RankingCard({
         }}
       >
         <div className="flex gap-3 sm:gap-4 items-start">
-          <div className="shrink-0 pt-0.5">
-            {isTop3 ? (
-              <span className={`rank-badge rank-badge-${rank}`}>#{rank}</span>
-            ) : (
-              <span className="flex h-7 w-7 items-center justify-center text-sm font-medium text-neutral-400">
-                #{rank}
-              </span>
-            )}
-          </div>
-
-          <div className="shrink-0">
+          <div className="flex shrink-0 flex-col items-center gap-1.5 sm:flex-row sm:items-start sm:gap-3">
+            <div className="pt-0.5">
+              {isTop3 ? (
+                <span className={`rank-badge rank-badge-${rank}`}>#{rank}</span>
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center text-sm font-medium text-neutral-400">
+                  #{rank}
+                </span>
+              )}
+            </div>
             {imgSrc ? (
               <img
                 src={imgSrc}

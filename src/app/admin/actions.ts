@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ADMIN_COOKIE, adminToken, isAdmin, passwordOk } from "@/lib/adminAuth";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
+import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 
 export async function loginAdmin(formData: FormData) {
   const password = String(formData.get("password") || "");
@@ -106,4 +107,33 @@ export async function deleteListing(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin/dashboard");
   redirect("/admin/dashboard");
+}
+
+export async function refreshListingMetadata(formData: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/admin/dashboard");
+
+  const listing = await prisma.listing.findUnique({ where: { id } });
+  if (!listing) redirect("/admin/dashboard");
+
+  try {
+    const meta = await fetchWebsiteMetadata(listing.url);
+    await prisma.listing.update({
+      where: { id },
+      data: {
+        title: meta.title || listing.title,
+        description: meta.description || listing.description,
+        logoUrl: meta.imageUrl || listing.logoUrl,
+        url: meta.canonicalUrl || listing.url,
+      },
+    });
+  } catch {
+    redirect(`/admin/${id}?error=3`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/dashboard");
+  revalidatePath(`/admin/${id}`);
+  redirect(`/admin/${id}?ok=1`);
 }
