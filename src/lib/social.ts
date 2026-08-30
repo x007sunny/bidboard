@@ -86,99 +86,172 @@ function decode(text: string) {
     .replace(/'/g, "'")
     .replace(/</g, "<")
     .replace(/>/g, ">")
+    .replace(/&#xb7;/gi, "·")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function humanizeHandle(handle: string) {
-  if (/^\d+$/.test(handle)) return handle;
-  return handle
-    .replace(/[._]+/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+function meta(html: string, property: string): string | null {
+  const re = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["'][^>]*>|<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["'][^>]*>`,
+    "i"
+  );
+  const m = html.match(re);
+  const value = m?.[1] || m?.[2];
+  return value ? decode(value) : null;
 }
 
-function stripTags(html: string) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, "\n")
-    .split("\n")
-    .map((l) => l.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
+function facebookIntro(ogDescription: string, pageName: string): string {
+  const wereHere = ogDescription.match(/were here\.\s*(.+)$/i);
+  if (wereHere?.[1]) return wereHere[1].trim();
+  const parts = ogDescription.split("·").map((p) => p.trim()).filter(Boolean);
+  const last = parts[parts.length - 1];
+  if (last && !/likes|talking about|were here|followers/i.test(last) && last.length < 180) {
+    return last.replace(new RegExp("^" + pageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[,.\\s]*", "i"), "").trim() || last;
+  }
+  return "";
+}
+
+function withSuffix(name: string, suffix: string) {
+  const cleaned = name.replace(new RegExp(`\\s*[-–—|]\\s*${suffix}$`, "i"), "").trim();
+  return `${cleaned} - ${suffix}`;
+}
+
+async function fetchHtml(url: string, extra: Record<string, string> = {}) {
+  const res = await fetch(url, {
+    redirect: "follow",
+    headers: {
+      Accept: "text/html,application/xhtml+xml,application/json",
+      "Accept-Language": "en-AU,en;q=0.9",
+      "User-Agent":
+        extra["User-Agent"] ||
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+      ...extra,
+    },
+  });
+  return res.text();
 }
 
 async function fetchFacebook(target: SocialTarget) {
-  const picture = `https://graph.facebook.com/${encodeURIComponent(target.handle)}/picture?type=large`;
-  let title = humanizeHandle(target.handle);
-  let description = "Facebook page";
+  const graphPic = `https://graph.facebook.com/${encodeURIComponent(target.handle)}/picture?type=large`;
+  let title = withSuffix(target.handle.replace(/[._]+/g, " "), "Facebook Page");
+  let description = "";
+  let imageUrl = graphPic;
 
   try {
-    const plugin = `https://www.facebook.com/plugins/page.php?href=${encodeURIComponent(
-      target.canonical
-    )}&tabs=about&width=340&height=700&small_header=false&_fb_noscript=1`;
-    const res = await fetch(plugin, {
-      redirect: "follow",
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-        Accept: "text/html",
-        "Accept-Language": "en-AU,en;q=0.9",
-      },
+    const aboutUrl = `${target.canonical.replace(/\/$/, "")}/about`;
+    const html = await fetchHtml(aboutUrl, {
+      "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
     });
-    const html = await res.text();
-    const lines = stripTags(html).filter(
-      (l) => !/^(facebook|follow page|followed|share|like page|verified page)$/i.test(l)
-    );
-    const name = lines.find((l) => l.length > 1 && l.length < 80 && !/followers|likes/i.test(l));
-    if (name) title = decode(name);
-    const followers = lines.find((l) => /\d[\d,.]*\s+(followers|likes)/i.test(l));
-    const about = lines.find(
-      (l) => l.length > 40 && !/followers|likes|follow page/i.test(l) && l !== name
-    );
-    if (about) description = decode(about).slice(0, 280);
-    else if (followers) description = `Facebook page · ${followers}`;
+    const ogTitle = meta(html, "og:title");
+    const ogDesc = meta(html, "og:description");
+    const ogImage = meta(html, "og:image");
+    if (ogTitle && !/log in|sign up|facebook/i.test(ogTitle)) {
+      const name = ogTitle.split("|")[0].trim();
+      title = withSuffix(name, "Facebook Page");
+      if (ogDesc) description = facebookIntro(ogDesc, name);
+    }
+    if (ogImage && /^https?:\/\//i.test(ogImage) && !/static\.xx\.fbcdn|facebook\.com\/images/i.test(ogImage)) {
+      imageUrl = ogImage;
+    }
   } catch {
-    // Graph picture still used
+    // graph picture still used
   }
 
-  return {
-    title,
-    description,
-    imageUrl: picture,
-    canonicalUrl: target.canonical,
-  };
+  if (!description) description = "Facebook page";
+
+  return { title, description, imageUrl, canonicalUrl: target.canonical };
+}
+
+function parseInstagramEmbed(html: string): {
+  username?: string;
+  fullName?: string;
+  pic?: string;
+  followers?: number;
+  bio?: string;
+} {
+  const m = html.match(/"contextJSON":"((?:\\.|[^"\\])*)"/);
+  if (!m) return {};
+  try {
+    const inner = JSON.parse(`"${m[1]}"`);
+    const obj = typeof inner === "string" ? JSON.parse(inner) : inner;
+    const ctx = obj.context || obj;
+    let pic = typeof ctx.profile_pic_url === "string" ? ctx.profile_pic_url : "";
+    pic = pic.replace(/\\\//g, "/").replace("s100x100", "s320x320");
+    const bioMatch = html.match(/"biography":"((?:\\.|[^"\\])*)"/);
+    let bio = ctx.biography || ctx.bio || "";
+    if (!bio && bioMatch) {
+      try {
+        bio = JSON.parse(`"${bioMatch[1]}"`);
+      } catch {
+        bio = bioMatch[1];
+      }
+    }
+    return {
+      username: ctx.username,
+      fullName: ctx.full_name,
+      pic,
+      followers: ctx.followers_count,
+      bio: typeof bio === "string" ? bio.replace(/\n+/g, " ").trim() : "",
+    };
+  } catch {
+    return {};
+  }
 }
 
 async function fetchInstagram(target: SocialTarget) {
   const handle = target.handle;
-  let title = `@${handle}`;
-  let description = `Instagram · @${handle}`;
-  let imageUrl = `https://unavatar.io/instagram/${encodeURIComponent(handle)}`;
+  let title = withSuffix(handle, "Instagram Page");
+  let description = "";
+  let imageUrl = "";
 
   try {
-    const res = await fetch(target.canonical, {
+    const res = await fetch(`https://www.instagram.com/${handle}/embed/`, {
       redirect: "follow",
       headers: {
-        "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
         Accept: "text/html",
-        "Accept-Language": "en",
+        "User-Agent": "Mozilla/5.0",
       },
     });
     const html = await res.text();
-    const ogTitle = html.match(/property="og:title"\s+content="([^"]+)"/i)?.[1];
-    const ogDesc = html.match(/property="og:description"\s+content="([^"]+)"/i)?.[1];
-    const ogImage = html.match(/property="og:image"\s+content="([^"]+)"/i)?.[1];
-    if (ogTitle && !/^instagram$/i.test(ogTitle)) title = decode(ogTitle);
-    if (ogDesc) description = decode(ogDesc).slice(0, 280);
-    if (ogImage && /^https?:\/\//i.test(ogImage)) imageUrl = ogImage;
+    const embed = parseInstagramEmbed(html);
+    if (embed.pic) imageUrl = embed.pic;
+    if (embed.bio) description = embed.bio;
   } catch {
-    // keep username fallbacks
+    // try the JSON API next
   }
+
+  try {
+    const api = await fetch(
+      `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(handle)}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+          Accept: "application/json",
+          "X-IG-App-ID": "936619743392459",
+          Referer: `https://www.instagram.com/${handle}/`,
+        },
+      }
+    );
+    if (api.ok) {
+      const json = await api.json();
+      const user = json?.data?.user;
+      if (user) {
+        if (user.biography) description = String(user.biography).replace(/\n+/g, " ").trim();
+        imageUrl = user.profile_pic_url_hd || user.profile_pic_url || imageUrl;
+      }
+    }
+  } catch {
+    // keep embed data
+  }
+
+  if (!imageUrl) imageUrl = `https://unavatar.io/instagram/${encodeURIComponent(handle)}`;
+  if (!description) description = "Instagram page";
 
   return {
     title,
-    description,
+    description: description.slice(0, 280),
     imageUrl,
     canonicalUrl: target.canonical,
   };

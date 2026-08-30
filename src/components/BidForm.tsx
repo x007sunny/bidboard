@@ -174,7 +174,7 @@ export function BidForm({
       {error && !underMin && <p className="text-sm text-red-600">{error}</p>}
 
       <p className="text-xs text-neutral-500">
-        Website, Facebook or Instagram. Already listed? Enter the same URL to raise your position.
+        Already listed? Enter the same URL to raise your position.
       </p>
     </form>
   );
