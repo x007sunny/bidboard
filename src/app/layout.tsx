@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description:
     "Australia's pay-to-rank business leaderboard. No ads. No subscriptions. Your bid determines your rank.",
   metadataBase: new URL("https://bidboard.com.au"),
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
