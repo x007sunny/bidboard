@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { CATEGORIES } from "@/lib/categories";
-import { parseSocialUrl } from "@/lib/social";
+import { parseSocialUrl, socialAvatarSrc } from "@/lib/social";
 
 function extractHost(input: string): string | null {
   const raw = input.trim();
@@ -18,24 +18,10 @@ function extractHost(input: string): string | null {
 }
 
 function previewIcon(input: string): string | null {
-  const raw = input.trim();
-  if (!raw) return null;
-  try {
-    const withProto = raw.startsWith("http") ? raw : `https://${raw}`;
-    const url = new URL(withProto);
-    const host = url.hostname.replace(/^www\./, "").toLowerCase();
-    const path = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean)[0];
-    if ((host === "facebook.com" || host === "fb.com") && path) {
-      return `https://graph.facebook.com/${encodeURIComponent(path)}/picture?type=large`;
-    }
-    if (host === "instagram.com" && path) {
-      return `https://unavatar.io/instagram/${encodeURIComponent(path)}`;
-    }
-    const h = extractHost(raw);
-    return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=64` : null;
-  } catch {
-    return null;
-  }
+  const social = socialAvatarSrc(input);
+  if (social) return social;
+  const h = extractHost(input);
+  return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=64` : null;
 }
 
 export function BidForm({
@@ -129,6 +115,7 @@ export function BidForm({
             <img
               src={liveFavicon}
               alt=""
+              referrerPolicy="no-referrer"
               className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 rounded-sm bg-white"
             />
           ) : (
@@ -144,7 +131,7 @@ export function BidForm({
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="yourproduct.com, facebook.com/page or instagram.com/page"
+            placeholder="website, facebook, instagram"
             className="w-full rounded-xl border border-neutral-300 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-950 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600"
           />
         </div>

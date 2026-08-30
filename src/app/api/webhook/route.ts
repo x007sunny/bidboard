@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
+import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -34,6 +35,20 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      let title = meta.title || "";
+      let description = meta.description || "";
+      let logoUrl = meta.logoUrl || "";
+      let url = meta.url || "";
+      try {
+        const fresh = await fetchWebsiteMetadata(meta.url || meta.uniqueKey);
+        if (fresh.title) title = fresh.title;
+        if (fresh.description) description = fresh.description;
+        if (fresh.imageUrl) logoUrl = fresh.imageUrl;
+        if (fresh.canonicalUrl) url = fresh.canonicalUrl;
+      } catch {
+        // Stripe metadata is the fallback
+      }
+
       await prisma.$transaction(async (tx) => {
         const payment = await tx.payment.update({
           where: { id: meta.paymentId },
@@ -51,11 +66,11 @@ export async function POST(req: NextRequest) {
             where: { id: existingId },
             data: {
               bidCents: newBidCents,
-              title: meta.title || undefined,
-              description: meta.description || undefined,
+              title: title || undefined,
+              description: description || undefined,
               category: meta.category || undefined,
-              logoUrl: meta.logoUrl || undefined,
-              url: meta.url || undefined,
+              logoUrl: logoUrl || undefined,
+              url: url || undefined,
               lastBidAt: new Date(),
             },
           });
@@ -63,11 +78,11 @@ export async function POST(req: NextRequest) {
           const listing = await tx.listing.create({
             data: {
               uniqueKey: meta.uniqueKey,
-              url: meta.url || meta.uniqueKey,
-              title: meta.title || meta.uniqueKey,
-              description: meta.description || "",
+              url: url || meta.uniqueKey,
+              title: title || meta.uniqueKey,
+              description: description || "",
               category: meta.category || "Other",
-              logoUrl: meta.logoUrl || null,
+              logoUrl: logoUrl || null,
               bidCents: newBidCents,
               lastBidAt: new Date(),
             },

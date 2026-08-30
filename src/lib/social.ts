@@ -160,7 +160,12 @@ async function fetchFacebook(target: SocialTarget) {
 
   if (!description) description = "Facebook page";
 
-  return { title, description, imageUrl, canonicalUrl: target.canonical };
+  return {
+    title,
+    description,
+    imageUrl: `/api/avatar?fb=${encodeURIComponent(target.handle)}`,
+    canonicalUrl: target.canonical,
+  };
 }
 
 function parseInstagramEmbed(html: string): {
@@ -215,7 +220,7 @@ async function fetchInstagram(target: SocialTarget) {
     });
     const html = await res.text();
     const embed = parseInstagramEmbed(html);
-    if (embed.pic) imageUrl = embed.pic;
+    if (embed.pic) imageUrl = `/api/avatar?ig=${encodeURIComponent(handle)}`;
     if (embed.bio) description = embed.bio;
   } catch {
     // try the JSON API next
@@ -239,22 +244,47 @@ async function fetchInstagram(target: SocialTarget) {
       const user = json?.data?.user;
       if (user) {
         if (user.biography) description = String(user.biography).replace(/\n+/g, " ").trim();
-        imageUrl = user.profile_pic_url_hd || user.profile_pic_url || imageUrl;
+        imageUrl = `/api/avatar?ig=${encodeURIComponent(handle)}`;
       }
     }
   } catch {
     // keep embed data
   }
 
-  if (!imageUrl) imageUrl = `https://unavatar.io/instagram/${encodeURIComponent(handle)}`;
-  if (!description) description = "Instagram page";
-
   return {
     title,
-    description: description.slice(0, 280),
-    imageUrl,
+    description: (description || "Instagram page").slice(0, 280),
+    imageUrl: `/api/avatar?ig=${encodeURIComponent(handle)}`,
     canonicalUrl: target.canonical,
   };
+}
+
+export async function resolveSocialImage(
+  kind: "facebook" | "instagram",
+  handle: string
+): Promise<string | null> {
+  if (kind === "facebook") {
+    return `https://graph.facebook.com/${encodeURIComponent(handle)}/picture?width=320&height=320`;
+  }
+
+  const res = await fetch(`https://www.instagram.com/${encodeURIComponent(handle)}/embed/`, {
+    redirect: "follow",
+    headers: {
+      Accept: "text/html",
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+  const html = await res.text();
+  const embed = parseInstagramEmbed(html);
+  return embed.pic || null;
+}
+
+export function socialAvatarSrc(rawUrl: string): string | null {
+  const target = parseSocialUrl(rawUrl);
+  if (!target) return null;
+  return target.kind === "facebook"
+    ? `/api/avatar?fb=${encodeURIComponent(target.handle)}`
+    : `/api/avatar?ig=${encodeURIComponent(target.handle)}`;
 }
 
 export async function fetchSocialMetadata(rawUrl: string): Promise<{

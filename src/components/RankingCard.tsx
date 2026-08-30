@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatAUD, timeAgo } from "@/lib/ranking";
+import { socialAvatarSrc } from "@/lib/social";
 
 type Listing = {
   id: string;
@@ -96,9 +97,12 @@ export function RankingCard({
 }) {
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
-  const fallbackIcon = googleFavicon(listing.url);
+  const socialIcon = socialAvatarSrc(listing.url);
+  const fallbackIcon = socialIcon || googleFavicon(listing.url);
   const extraFallback = duckDuckGoIcon(listing.url);
-  const [imgSrc, setImgSrc] = useState<string | null>(listing.logoUrl || fallbackIcon);
+  const [imgSrc, setImgSrc] = useState<string | null>(
+    socialIcon || listing.logoUrl || fallbackIcon
+  );
 
   const cardClass = isTop3
     ? CARD_BY_RANK[rank]
@@ -149,6 +153,7 @@ export function RankingCard({
               <img
                 src={imgSrc}
                 alt=""
+                referrerPolicy="no-referrer"
                 className="h-11 w-11 rounded-xl object-contain border border-black/5 bg-white dark:border-white/10"
                 onError={() => {
                   if (fallbackIcon && imgSrc !== fallbackIcon) {
