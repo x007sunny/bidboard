@@ -15,7 +15,7 @@ export function ClaimBox({
   topBidCents: number;
   listings: Listing[];
 }) {
-  const defaultAmount = Math.max(Math.ceil(topBidCents / 100) + 5, 5);
+  const defaultAmount = Math.max(Math.ceil(topBidCents / 100) + 1, 5);
   const [amount, setAmount] = useState<number | "">(defaultAmount);
 
   useEffect(() => {

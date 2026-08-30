@@ -31,7 +31,12 @@ function listingHost(url: string) {
   try {
     let domain = url;
     if (!domain.startsWith("http")) domain = `https://${domain}`;
-    return new URL(domain).hostname.replace(/^www\./, "");
+    const parsed = new URL(domain);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const slug = parsed.pathname.replace(/\/+$/, "").split("/").filter(Boolean)[0];
+    if ((host === "facebook.com" || host === "fb.com") && slug) return `facebook.com/${slug}`;
+    if (host === "instagram.com" && slug) return `instagram.com/${slug}`;
+    return host;
   } catch {
     return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
   }

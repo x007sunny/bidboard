@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { CATEGORIES } from "@/lib/categories";
+import { parseSocialUrl } from "@/lib/social";
 
 function extractHost(input: string): string | null {
   const raw = input.trim();
@@ -11,6 +12,27 @@ function extractHost(input: string): string | null {
     const host = new URL(withProto).hostname.replace(/^www\./, "");
     if (!host.includes(".") || host.length < 3) return null;
     return host;
+  } catch {
+    return null;
+  }
+}
+
+function previewIcon(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  try {
+    const withProto = raw.startsWith("http") ? raw : `https://${raw}`;
+    const url = new URL(withProto);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+    const path = url.pathname.replace(/\/+$/, "").split("/").filter(Boolean)[0];
+    if ((host === "facebook.com" || host === "fb.com") && path) {
+      return `https://graph.facebook.com/${encodeURIComponent(path)}/picture?type=large`;
+    }
+    if (host === "instagram.com" && path) {
+      return `https://unavatar.io/instagram/${encodeURIComponent(path)}`;
+    }
+    const h = extractHost(raw);
+    return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=64` : null;
   } catch {
     return null;
   }
@@ -39,10 +61,7 @@ export function BidForm({
     }
   }, [controlledAmount]);
 
-  const host = useMemo(() => extractHost(url), [url]);
-  const liveFavicon = host
-    ? `https://www.google.com/s2/favicons?domain=${host}&sz=64`
-    : null;
+  const liveFavicon = useMemo(() => previewIcon(url), [url]);
 
   const numericAmount = amount === "" ? 0 : amount;
   const underMin = numericAmount > 0 && numericAmount < 5;
@@ -52,12 +71,18 @@ export function BidForm({
     setError("");
 
     if (url.trim().startsWith("@")) {
-      setError("Please enter a website URL, not an @handle.");
+      setError("Please enter a website, Facebook, or Instagram URL — not an @handle.");
       return;
     }
 
     if (!extractHost(url)) {
-      setError("Please enter a valid website like yourproduct.com");
+      setError("Please enter a website like yourproduct.com, facebook.com/page or instagram.com/page");
+      return;
+    }
+
+    const host = extractHost(url);
+    if (host && /^(facebook|fb|instagram)\.com$/i.test(host) && !parseSocialUrl(url)) {
+      setError("Paste the full page URL, e.g. facebook.com/yourpage or instagram.com/yourpage");
       return;
     }
 
@@ -119,7 +144,7 @@ export function BidForm({
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="yourproduct.com"
+            placeholder="yourproduct.com, facebook.com/page or instagram.com/page"
             className="w-full rounded-xl border border-neutral-300 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-950 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600"
           />
         </div>
@@ -149,7 +174,7 @@ export function BidForm({
       {error && !underMin && <p className="text-sm text-red-600">{error}</p>}
 
       <p className="text-xs text-neutral-500">
-        Already listed? Enter the same website to raise your position.
+        Website, Facebook or Instagram. Already listed? Enter the same URL to raise your position.
       </p>
     </form>
   );

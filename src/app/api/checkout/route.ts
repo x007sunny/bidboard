@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     if (body.url.trim().startsWith("@")) {
       return NextResponse.json(
-        { error: "Please enter a website URL, not an @handle." },
+        { error: "Please enter a website, Facebook, or Instagram URL — not an @handle." },
         { status: 400 }
       );
     }
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const { uniqueKey, title: domainTitle, isHandle } = normalizeUrlOrHandle(body.url);
     if (isHandle) {
       return NextResponse.json(
-        { error: "Please enter a website URL, not an @handle." },
+        { error: "Please enter a website, Facebook, or Instagram URL — not an @handle." },
         { status: 400 }
       );
     }

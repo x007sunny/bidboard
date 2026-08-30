@@ -1,3 +1,5 @@
+import { fetchSocialMetadata } from "./social";
+
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_HTML_BYTES = 600_000;
 const TITLE_MAX = 140;
@@ -346,6 +348,9 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
 }
 
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
+  const social = await fetchSocialMetadata(rawUrl).catch(() => null);
+  if (social) return social;
+
   const pageUrl = normalizeWebsiteUrl(rawUrl);
   const fallbackTitle = cleanedDomainName(pageUrl.hostname);
   const fallbackImage = googleFaviconUrl(pageUrl.hostname);

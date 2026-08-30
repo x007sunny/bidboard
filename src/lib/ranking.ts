@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { MIN_BID_CENTS, TOP_OUTBID_EXTRA_CENTS } from "./stripe";
+import { parseSocialUrl } from "./social";
 
 export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title: string; isHandle: boolean } {
   let cleaned = input.trim();
@@ -10,6 +10,15 @@ export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title:
       uniqueKey: `handle:${handle}`,
       title: `@${handle}`,
       isHandle: true,
+    };
+  }
+
+  const social = parseSocialUrl(cleaned);
+  if (social) {
+    return {
+      uniqueKey: `${social.kind}:${social.handle.toLowerCase()}`,
+      title: social.kind === "instagram" ? `@${social.handle}` : social.handle,
+      isHandle: false,
     };
   }
 
