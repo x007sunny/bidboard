@@ -7,6 +7,7 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { prisma } from "@/lib/prisma";
+import { getVisitorStats } from "@/lib/visitors";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -43,8 +44,7 @@ export default async function HomePage({
   const hoursSinceLaunch = Math.floor(
     (Date.now() - launchDate.getTime()) / (1000 * 60 * 60)
   );
-  const totalVisitors = 1327 + Math.floor(hoursSinceLaunch * 12);
-  const onlineNow = 3 + Math.floor(Math.random() * 8);
+  const { totalVisitors, onlineNow } = await getVisitorStats();
 
   const bidList = allListings.map((l) => ({ id: l.id, bidCents: l.bidCents }));
 

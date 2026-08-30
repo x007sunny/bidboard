@@ -1,4 +1,5 @@
 import { fetchSocialMetadata } from "./social";
+import { isBlockedHost, safeFetch } from "./safeFetch";
 
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_HTML_BYTES = 600_000;
@@ -12,27 +13,8 @@ export type WebsiteMetadata = {
   canonicalUrl: string;
 };
 
-const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1"]);
-
 const BOT_WALL_RE =
   /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|verify you are (a )?human|unusual traffic from your computer/i;
-
-function isBlockedHost(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.+$/, "");
-  if (BLOCKED_HOSTS.has(host)) return true;
-  if (host.endsWith(".local") || host.endsWith(".internal") || host.endsWith(".localhost")) {
-    return true;
-  }
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
-    const parts = host.split(".").map(Number);
-    const [a, b] = parts;
-    if (a === 10 || a === 127 || a === 0) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 192 && b === 168) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-  }
-  return false;
-}
 
 export function normalizeWebsiteUrl(input: string): URL {
   let cleaned = input.trim();
@@ -361,14 +343,11 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     canonicalUrl: pageUrl.toString(),
   };
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
   try {
-    const res = await fetch(pageUrl.toString(), {
+    const res = await safeFetch(pageUrl, {
       method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxRedirects: 3,
       headers: {
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -460,7 +439,5 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     };
   } catch {
     return empty;
-  } finally {
-    clearTimeout(timer);
   }
 }

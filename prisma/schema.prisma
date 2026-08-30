@@ -41,3 +41,21 @@ model Payment {
 
   @@index([listingId])
 }
+
+// P0: Stripe webhook idempotency — unique on Stripe event.id (evt_...)
+model StripeEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+}
+
+// P0: real visitors — one row per browser cookie
+model Visitor {
+  id          String   @id
+  ipHash      String?
+  userAgent   String?
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  @@index([lastSeenAt])
+}

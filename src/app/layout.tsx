@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { VisitBeacon } from "@/components/VisitBeacon";
 
 export const metadata: Metadata = {
   title: "bidboard.com.au – Buy your position. Get seen.",
@@ -23,6 +24,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen antialiased bg-[#fafafa] text-neutral-900 dark:bg-[#0f0f12] dark:text-neutral-100">
+        <VisitBeacon />
         <div className="mx-auto max-w-5xl px-4 pt-0 pb-6 sm:px-6">
           {children}
         </div>
