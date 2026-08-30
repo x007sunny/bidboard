@@ -206,29 +206,30 @@ function parseInstagramEmbed(html: string): {
 
 function decodeSearchHtml(html: string): string {
   return html
-    .replace(/"/gi, '"')
+    .replace(/&quot;/gi, '"')
     .replace(/&#x27;/gi, "'")
     .replace(/&#39;/gi, "'")
-    .replace(/&/gi, "&")
+    .replace(/&amp;/gi, "&")
+    .replace(/&#xb7;/gi, "·")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ");
 }
 
 function cleanIgBio(raw: string, handle: string): string {
   let s = raw
-    .replace(/"/gi, '"')
+    .replace(/&quot;/gi, '"')
     .replace(/&#x27;/gi, "'")
     .replace(/@\s+/g, "@")
     .replace(/\s+/g, " ")
     .replace(/[“”]/g, '"')
+    .replace(/…+.*$/, "")
+    .replace(/\.{3,}.*$/, "")
     .trim();
-  const stop = s.search(/👇|"|\s[•·]\s*Instagram photos|\swww\.|\sJB Hi-Fi\s*\(/i);
-  if (stop >= 20) {
-    s = s.slice(0, s[stop] === "👇" ? stop + 1 : stop);
-  }
-  s = s.replace(/^"+|"+$/g, "").replace(/[…].*$/, "").trim();
+  s = s.replace(/^"+|"+$/g, "").replace(/\s+(For|And|To|With)$/i, "").trim();
   if (!s || s.length < 12) return "";
-  if (/\d[\d,.]*\s+(Followers|Following|Posts)/i.test(s) && !/official Instagram/i.test(s)) return "";
+  if (/\d[\d,.]*\s+(Followers|Following|Posts)/i.test(s) && !/official Instagram|customer support/i.test(s)) {
+    return "";
+  }
   const handleRe = new RegExp(handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
   if (!handleRe.test(s) && !/instagram page|customer support|official/i.test(s)) return "";
   if (/^official /i.test(s)) s = `The ${s}`;
@@ -238,17 +239,17 @@ function cleanIgBio(raw: string, handle: string): string {
 function extractInstagramBioFromText(text: string, handle: string): string {
   const handleRe = handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const patterns = [
-    new RegExp(`on Instagram:\\s*"([^"]{12,280})"`, "i"),
-    new RegExp(`(The official Instagram page for @\\s*${handleRe}[^"]{8,220})`, "i"),
-    new RegExp(`(official Instagram page for @\\s*${handleRe}[^"]{8,220})`, "i"),
+    new RegExp(`on Instagram:\\s*"([^"]{12,280})`, "i"),
+    new RegExp(`(The official Instagram page for @${handleRe}[^"]{0,220})`, "i"),
+    new RegExp(`(official Instagram page for @${handleRe}[^"]{0,220})`, "i"),
   ];
   for (const re of patterns) {
     const m = text.match(re);
     if (m?.[1]) {
       const cleaned = cleanIgBio(m[1], handle);
-      if (cleaned) return cleaned.startsWith("The ") || cleaned.startsWith("official")
-        ? cleaned.replace(/^official/i, "The official")
-        : cleaned;
+      if (cleaned) {
+        return /^official/i.test(cleaned) ? `The ${cleaned.replace(/^the\s+/i, "")}` : cleaned;
+      }
     }
   }
   return "";
@@ -264,18 +265,18 @@ async function fetchInstagramBioFromSearch(handle: string): Promise<string> {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
   };
   try {
-    const ddg = await fetch(
-      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(`${handle} instagram`)}`,
-      { signal: controller.signal, headers }
-    );
-    const ddgBio = extractInstagramBioFromText(decodeSearchHtml(await ddg.text()), handle);
-    if (ddgBio) return ddgBio;
-
     const bing = await fetch(
       `https://www.bing.com/search?q=${encodeURIComponent(`site:instagram.com/${handle}`)}`,
       { signal: controller.signal, headers }
     );
-    return extractInstagramBioFromText(decodeSearchHtml(await bing.text()), handle);
+    const bio = extractInstagramBioFromText(decodeSearchHtml(await bing.text()), handle);
+    if (bio) return bio;
+
+    const ddg = await fetch(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(`site:instagram.com/${handle}`)}`,
+      { signal: controller.signal, headers }
+    );
+    return extractInstagramBioFromText(decodeSearchHtml(await ddg.text()), handle);
   } catch {
     return "";
   } finally {
@@ -291,10 +292,15 @@ function formatFollowers(n?: number) {
   return `${n.toLocaleString()} followers`;
 }
 
+function isGenericIgDescription(value: string) {
+  return !value || /^(instagram page|facebook page)$/i.test(value) || /·\s*\d/.test(value);
+}
+
 async function fetchInstagram(target: SocialTarget) {
   const handle = target.handle;
   const title = withSuffix(handle, "Instagram Page");
-  let description = "";
+  let fallback = "";
+  let bio = "";
 
   try {
     const res = await fetch(`https://www.instagram.com/${handle}/embed/`, {
@@ -306,16 +312,16 @@ async function fetchInstagram(target: SocialTarget) {
     });
     const html = await res.text();
     const embed = parseInstagramEmbed(html);
-    if (embed.bio) description = embed.bio;
-    else if (embed.fullName) {
+    if (embed.bio) bio = embed.bio;
+    if (embed.fullName) {
       const followers = formatFollowers(embed.followers);
-      description = followers ? `${embed.fullName} · ${followers}` : embed.fullName;
+      fallback = followers ? `${embed.fullName} · ${followers}` : embed.fullName;
     }
   } catch {
     // try other sources
   }
 
-  if (!description) {
+  if (!bio) {
     try {
       const api = await fetch(
         `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(handle)}`,
@@ -331,20 +337,21 @@ async function fetchInstagram(target: SocialTarget) {
       if (api.ok) {
         const json = await api.json();
         const user = json?.data?.user;
-        if (user?.biography) description = String(user.biography).replace(/\n+/g, " ").trim();
+        if (user?.biography) bio = String(user.biography).replace(/\n+/g, " ").trim();
       }
     } catch {
       // search fallback
     }
   }
 
-  if (!description) {
-    description = await fetchInstagramBioFromSearch(handle);
+  if (!bio) {
+    bio = await fetchInstagramBioFromSearch(handle);
   }
 
+  const description = (bio || fallback || "Instagram page").slice(0, 280);
   return {
     title,
-    description: (description || "Instagram page").slice(0, 280),
+    description,
     imageUrl: `/api/avatar?ig=${encodeURIComponent(handle)}`,
     canonicalUrl: target.canonical,
   };
