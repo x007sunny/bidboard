@@ -182,7 +182,7 @@ function parseInstagramEmbed(html: string): {
     const obj = typeof inner === "string" ? JSON.parse(inner) : inner;
     const ctx = obj.context || obj;
     let pic = typeof ctx.profile_pic_url === "string" ? ctx.profile_pic_url : "";
-    pic = pic.replace(/\\\//g, "/").replace("s100x100", "s320x320");
+    pic = pic.replace(/\\\//g, "/");
     const bioMatch = html.match(/"biography":"((?:\\.|[^"\\])*)"/);
     let bio = ctx.biography || ctx.bio || "";
     if (!bio && bioMatch) {
@@ -204,11 +204,97 @@ function parseInstagramEmbed(html: string): {
   }
 }
 
+function decodeSearchHtml(html: string): string {
+  return html
+    .replace(/"/gi, '"')
+    .replace(/&#x27;/gi, "'")
+    .replace(/&#39;/gi, "'")
+    .replace(/&/gi, "&")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ");
+}
+
+function cleanIgBio(raw: string, handle: string): string {
+  let s = raw
+    .replace(/"/gi, '"')
+    .replace(/&#x27;/gi, "'")
+    .replace(/@\s+/g, "@")
+    .replace(/\s+/g, " ")
+    .replace(/[“”]/g, '"')
+    .trim();
+  const stop = s.search(/👇|"|\s[•·]\s*Instagram photos|\swww\.|\sJB Hi-Fi\s*\(/i);
+  if (stop >= 20) {
+    s = s.slice(0, s[stop] === "👇" ? stop + 1 : stop);
+  }
+  s = s.replace(/^"+|"+$/g, "").replace(/[…].*$/, "").trim();
+  if (!s || s.length < 12) return "";
+  if (/\d[\d,.]*\s+(Followers|Following|Posts)/i.test(s) && !/official Instagram/i.test(s)) return "";
+  const handleRe = new RegExp(handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  if (!handleRe.test(s) && !/instagram page|customer support|official/i.test(s)) return "";
+  if (/^official /i.test(s)) s = `The ${s}`;
+  return s.slice(0, 280);
+}
+
+function extractInstagramBioFromText(text: string, handle: string): string {
+  const handleRe = handle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const patterns = [
+    new RegExp(`on Instagram:\\s*"([^"]{12,280})"`, "i"),
+    new RegExp(`(The official Instagram page for @\\s*${handleRe}[^"]{8,220})`, "i"),
+    new RegExp(`(official Instagram page for @\\s*${handleRe}[^"]{8,220})`, "i"),
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m?.[1]) {
+      const cleaned = cleanIgBio(m[1], handle);
+      if (cleaned) return cleaned.startsWith("The ") || cleaned.startsWith("official")
+        ? cleaned.replace(/^official/i, "The official")
+        : cleaned;
+    }
+  }
+  return "";
+}
+
+async function fetchInstagramBioFromSearch(handle: string): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  const headers = {
+    Accept: "text/html",
+    "Accept-Language": "en-AU,en;q=0.9",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  };
+  try {
+    const ddg = await fetch(
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(`${handle} instagram`)}`,
+      { signal: controller.signal, headers }
+    );
+    const ddgBio = extractInstagramBioFromText(decodeSearchHtml(await ddg.text()), handle);
+    if (ddgBio) return ddgBio;
+
+    const bing = await fetch(
+      `https://www.bing.com/search?q=${encodeURIComponent(`site:instagram.com/${handle}`)}`,
+      { signal: controller.signal, headers }
+    );
+    return extractInstagramBioFromText(decodeSearchHtml(await bing.text()), handle);
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function formatFollowers(n?: number) {
+  if (!n || n < 1) return "";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1).replace(/\.0$/, "")}M followers`;
+  if (n >= 10_000) return `${Math.round(n / 1000)}K followers`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K followers`;
+  return `${n.toLocaleString()} followers`;
+}
+
 async function fetchInstagram(target: SocialTarget) {
   const handle = target.handle;
-  let title = withSuffix(handle, "Instagram Page");
+  const title = withSuffix(handle, "Instagram Page");
   let description = "";
-  let imageUrl = "";
 
   try {
     const res = await fetch(`https://www.instagram.com/${handle}/embed/`, {
@@ -220,35 +306,40 @@ async function fetchInstagram(target: SocialTarget) {
     });
     const html = await res.text();
     const embed = parseInstagramEmbed(html);
-    if (embed.pic) imageUrl = `/api/avatar?ig=${encodeURIComponent(handle)}`;
     if (embed.bio) description = embed.bio;
-  } catch {
-    // try the JSON API next
-  }
-
-  try {
-    const api = await fetch(
-      `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(handle)}`,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-          Accept: "application/json",
-          "X-IG-App-ID": "936619743392459",
-          Referer: `https://www.instagram.com/${handle}/`,
-        },
-      }
-    );
-    if (api.ok) {
-      const json = await api.json();
-      const user = json?.data?.user;
-      if (user) {
-        if (user.biography) description = String(user.biography).replace(/\n+/g, " ").trim();
-        imageUrl = `/api/avatar?ig=${encodeURIComponent(handle)}`;
-      }
+    else if (embed.fullName) {
+      const followers = formatFollowers(embed.followers);
+      description = followers ? `${embed.fullName} · ${followers}` : embed.fullName;
     }
   } catch {
-    // keep embed data
+    // try other sources
+  }
+
+  if (!description) {
+    try {
+      const api = await fetch(
+        `https://i.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(handle)}`,
+        {
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+            Accept: "*/*",
+            "x-ig-app-id": "936619743392459",
+          },
+        }
+      );
+      if (api.ok) {
+        const json = await api.json();
+        const user = json?.data?.user;
+        if (user?.biography) description = String(user.biography).replace(/\n+/g, " ").trim();
+      }
+    } catch {
+      // search fallback
+    }
+  }
+
+  if (!description) {
+    description = await fetchInstagramBioFromSearch(handle);
   }
 
   return {
@@ -259,6 +350,97 @@ async function fetchInstagram(target: SocialTarget) {
   };
 }
 
+function cookieHeader(res: Response): string {
+  const list =
+    typeof res.headers.getSetCookie === "function"
+      ? res.headers.getSetCookie()
+      : res.headers.get("set-cookie")
+        ? [res.headers.get("set-cookie") as string]
+        : [];
+  return list
+    .map((c) => c.split(";")[0])
+    .filter(Boolean)
+    .join("; ");
+}
+
+export async function downloadInstagramAvatar(
+  handle: string
+): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  const embedRes = await fetch(`https://www.instagram.com/${encodeURIComponent(handle)}/embed/`, {
+    redirect: "follow",
+    headers: {
+      Accept: "text/html",
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+  const html = await embedRes.text();
+  const cookies = cookieHeader(embedRes);
+  const embed = parseInstagramEmbed(html);
+  if (!embed.pic) return null;
+
+  const img = await fetch(embed.pic, {
+    redirect: "follow",
+    headers: {
+      Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0",
+      Cookie: cookies,
+      Referer: `https://www.instagram.com/${handle}/embed/`,
+    },
+  });
+  if (!img.ok) return null;
+  const contentType = img.headers.get("content-type") || "image/jpeg";
+  if (!contentType.startsWith("image/")) return null;
+  const bytes = await img.arrayBuffer();
+  if (bytes.byteLength < 400) return null;
+  return { bytes, contentType };
+}
+
+export async function downloadFacebookAvatar(
+  handle: string
+): Promise<{ bytes: ArrayBuffer; contentType: string } | null> {
+  const img = await fetch(
+    `https://graph.facebook.com/${encodeURIComponent(handle)}/picture?width=320&height=320`,
+    {
+      redirect: "follow",
+      headers: {
+        Accept: "image/*",
+        "User-Agent": "Mozilla/5.0",
+      },
+    }
+  );
+  if (!img.ok) return null;
+  const contentType = img.headers.get("content-type") || "image/jpeg";
+  if (!contentType.startsWith("image/")) return null;
+  const bytes = await img.arrayBuffer();
+  if (bytes.byteLength < 400) return null;
+  return { bytes, contentType };
+}
+
+function toDataUrl(file: { bytes: ArrayBuffer; contentType: string }) {
+  return `data:${file.contentType};base64,${Buffer.from(file.bytes).toString("base64")}`;
+}
+
+export async function socialCardAssets(rawUrl: string): Promise<{
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageDataUrl: string | null;
+  canonicalUrl: string;
+} | null> {
+  const meta = await fetchSocialMetadata(rawUrl);
+  if (!meta) return null;
+  const target = parseSocialUrl(rawUrl);
+  let imageDataUrl: string | null = null;
+  if (target?.kind === "instagram") {
+    const file = await downloadInstagramAvatar(target.handle).catch(() => null);
+    if (file) imageDataUrl = toDataUrl(file);
+  } else if (target?.kind === "facebook") {
+    const file = await downloadFacebookAvatar(target.handle).catch(() => null);
+    if (file) imageDataUrl = toDataUrl(file);
+  }
+  return { ...meta, imageDataUrl };
+}
+
 export async function resolveSocialImage(
   kind: "facebook" | "instagram",
   handle: string
@@ -266,17 +448,7 @@ export async function resolveSocialImage(
   if (kind === "facebook") {
     return `https://graph.facebook.com/${encodeURIComponent(handle)}/picture?width=320&height=320`;
   }
-
-  const res = await fetch(`https://www.instagram.com/${encodeURIComponent(handle)}/embed/`, {
-    redirect: "follow",
-    headers: {
-      Accept: "text/html",
-      "User-Agent": "Mozilla/5.0",
-    },
-  });
-  const html = await res.text();
-  const embed = parseInstagramEmbed(html);
-  return embed.pic || null;
+  return null;
 }
 
 export function socialAvatarSrc(rawUrl: string): string | null {
@@ -285,6 +457,11 @@ export function socialAvatarSrc(rawUrl: string): string | null {
   return target.kind === "facebook"
     ? `/api/avatar?fb=${encodeURIComponent(target.handle)}`
     : `/api/avatar?ig=${encodeURIComponent(target.handle)}`;
+}
+
+export function socialAvatarFallbacks(rawUrl: string): string[] {
+  const src = socialAvatarSrc(rawUrl);
+  return src ? [src] : [];
 }
 
 export async function fetchSocialMetadata(rawUrl: string): Promise<{

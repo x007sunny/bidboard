@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatAUD, timeAgo } from "@/lib/ranking";
-import { socialAvatarSrc } from "@/lib/social";
+import { socialAvatarSrc, socialAvatarFallbacks } from "@/lib/social";
 
 type Listing = {
   id: string;
@@ -97,12 +97,33 @@ export function RankingCard({
 }) {
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
-  const socialIcon = socialAvatarSrc(listing.url);
-  const fallbackIcon = socialIcon || googleFavicon(listing.url);
-  const extraFallback = duckDuckGoIcon(listing.url);
+  const picCandidates = socialAvatarFallbacks(listing.url);
+  const socialIcon = picCandidates[0] || socialAvatarSrc(listing.url);
+  const storedLogo =
+    listing.logoUrl && listing.logoUrl.startsWith("data:image") ? listing.logoUrl : null;
+  const fallbackIcon = socialIcon ? null : googleFavicon(listing.url);
+  const extraFallback = socialIcon ? null : duckDuckGoIcon(listing.url);
+  const [picIndex, setPicIndex] = useState(0);
   const [imgSrc, setImgSrc] = useState<string | null>(
-    socialIcon || listing.logoUrl || fallbackIcon
+    storedLogo || picCandidates[0] || listing.logoUrl || fallbackIcon
   );
+  const [description, setDescription] = useState(listing.description);
+
+  useEffect(() => {
+    if (!socialIcon) return;
+    fetch(`/api/social-meta?url=${encodeURIComponent(listing.url)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const next = String(d?.description || "").trim();
+        if (next && !/^(instagram page|facebook page)$/i.test(next)) {
+          setDescription(next);
+        }
+        if (typeof d?.imageDataUrl === "string" && d.imageDataUrl.startsWith("data:image")) {
+          setImgSrc(d.imageDataUrl);
+        }
+      })
+      .catch(() => {});
+  }, [listing.url, socialIcon]);
 
   const cardClass = isTop3
     ? CARD_BY_RANK[rank]
@@ -156,6 +177,12 @@ export function RankingCard({
                 referrerPolicy="no-referrer"
                 className="h-11 w-11 rounded-xl object-contain border border-black/5 bg-white dark:border-white/10"
                 onError={() => {
+                  const next = picCandidates[picIndex + 1];
+                  if (next) {
+                    setPicIndex(picIndex + 1);
+                    setImgSrc(next);
+                    return;
+                  }
                   if (fallbackIcon && imgSrc !== fallbackIcon) {
                     setImgSrc(fallbackIcon);
                   } else if (extraFallback && imgSrc !== extraFallback) {
@@ -185,13 +212,13 @@ export function RankingCard({
                 {formatAUD(listing.bidCents)}
               </div>
             </div>
-            {listing.description && (
+            {description && (
               <p
                 className={`mt-1 text-sm text-neutral-600 dark:text-neutral-300 ${
                   isTop3 ? "line-clamp-2" : "truncate"
                 }`}
               >
-                {listing.description}
+                {description}
               </p>
             )}
 
