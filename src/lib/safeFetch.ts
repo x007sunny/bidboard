@@ -85,36 +85,31 @@ type SafeFetchInit = RequestInit & {
 };
 
 export async function safeFetch(input: string | URL, init: SafeFetchInit = {}): Promise<Response> {
-  const timeoutMs = init.timeoutMs ?? 12000;
-  const maxRedirects = init.maxRedirects ?? 3;
+  const timeoutMs = init.timeoutMs ?? 15000;
   const { timeoutMs: _t, maxRedirects: _m, redirect: _r, signal: _s, ...rest } = init;
 
-  let current = typeof input === "string" ? new URL(input) : new URL(input.toString());
+  const start = typeof input === "string" ? new URL(input) : new URL(input.toString());
+  await assertPublicHttpUrl(start);
 
-  for (let hop = 0; hop <= maxRedirects; hop++) {
-    await assertPublicHttpUrl(current);
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(start.toString(), {
+      ...rest,
+      redirect: "follow",
+      signal: controller.signal,
+    });
     try {
-      const res = await fetch(current.toString(), {
-        ...rest,
-        redirect: "manual",
-        signal: controller.signal,
-      });
-
-      if ([301, 302, 303, 307, 308].includes(res.status)) {
-        const location = res.headers.get("location");
-        if (!location) throw new Error("Redirect missing Location header.");
-        current = new URL(location, current);
-        continue;
-      }
-
-      return res;
-    } finally {
-      clearTimeout(timer);
+      const finalUrl = new URL(res.url || start.toString());
+      await assertPublicHttpUrl(finalUrl);
+    } catch {
+      throw new Error("That website cannot be listed.");
     }
+    return res;
+  } finally {
+    clearTimeout(timer);
   }
+}
 
   throw new Error("Too many redirects.");
 }
