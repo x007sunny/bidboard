@@ -13,7 +13,6 @@ export type WebsiteMetadata = {
   canonicalUrl: string;
 };
 
-const BOT_WALL_RE =
   const BOT_WALL_RE =
   /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|_incapsula_resource|incapsula|verify you are (a )?human|unusual traffic from your computer/i;
 
