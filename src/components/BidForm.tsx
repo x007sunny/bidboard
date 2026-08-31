@@ -21,7 +21,9 @@ function previewIcon(input: string): string | null {
   const social = socialAvatarSrc(input);
   if (social) return social;
   const h = extractHost(input);
-  return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=64` : null;
+  if (!h) return null;
+  if (h === "bidboard.com.au") return "/favicon.png";
+  return `https://www.google.com/s2/favicons?domain=${h}&sz=64`;
 }
 
 export function BidForm({
