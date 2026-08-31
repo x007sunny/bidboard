@@ -110,6 +110,3 @@ export async function safeFetch(input: string | URL, init: SafeFetchInit = {}): 
     clearTimeout(timer);
   }
 }
-
-  throw new Error("Too many redirects.");
-}
