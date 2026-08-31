@@ -384,15 +384,14 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
       "seo_title",
     ]);
 
-    const title =
-      pickBestTitle([
-        ...jsonTitles,
-        ogTitle,
-        htmlTitle,
-        twitterTitle,
-        siteName,
-        ld.name,
-      ]) || fallbackTitle;
+        const title =
+      ogTitle ||
+      twitterTitle ||
+      htmlTitle ||
+      usefulTitle(jsonTitles[0]) ||
+      siteName ||
+      ld.name ||
+      fallbackTitle;
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
@@ -404,11 +403,11 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     const pairedDesc = pairedSeo ? unescapeJsonString(pairedSeo[1]) : null;
 
     let description = pickBestDescription([
-      pairedDesc,
-      ...jsonDescs,
-      metaDesc,
       ogDesc,
       twitterDesc,
+      metaDesc,
+      pairedDesc,
+      ...jsonDescs,
       ld.description,
     ]);
     if (!description) {
