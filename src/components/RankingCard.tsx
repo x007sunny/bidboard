@@ -175,7 +175,7 @@ export function RankingCard({
                 src={imgSrc}
                 alt=""
                 referrerPolicy="no-referrer"
-                className="h-11 w-11 rounded-xl object-contain border border-black/5 bg-white dark:border-white/10"
+               className="h-11 w-11 rounded-xl object-cover"
                 onError={() => {
                   const next = picCandidates[picIndex + 1];
                   if (next) {
