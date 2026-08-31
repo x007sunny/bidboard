@@ -14,7 +14,8 @@ export type WebsiteMetadata = {
 };
 
 const BOT_WALL_RE =
-  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|verify you are (a )?human|unusual traffic from your computer/i;
+  const BOT_WALL_RE =
+  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|_incapsula_resource|incapsula|verify you are (a )?human|unusual traffic from your computer/i;
 
 export function normalizeWebsiteUrl(input: string): URL {
   let cleaned = input.trim();
