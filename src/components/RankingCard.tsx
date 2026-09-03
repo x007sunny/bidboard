@@ -9,6 +9,8 @@ type Listing = {
   title: string;
   description: string;
   category: string;
+  subcategory?: string | null;
+  states?: string[];
   logoUrl: string | null;
   bidCents: number;
   clicks: number;
@@ -175,7 +177,7 @@ export function RankingCard({
                 src={imgSrc}
                 alt=""
                 referrerPolicy="no-referrer"
-               className="h-11 w-11 rounded-xl object-cover"
+                className="h-11 w-11 rounded-xl object-cover"
                 onError={() => {
                   const next = picCandidates[picIndex + 1];
                   if (next) {
@@ -223,7 +225,7 @@ export function RankingCard({
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-neutral-500 dark:text-neutral-400">
-              <span>{listing.category}</span>
+              <span>{listing.subcategory ? `${listing.category} · ${listing.subcategory}` : listing.category}</span>
               <span className="text-neutral-300">·</span>
               <span>{timeAgo(listing.lastBidAt)}</span>
               <span className="text-neutral-300">·</span>

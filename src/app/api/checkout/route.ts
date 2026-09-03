@@ -4,6 +4,8 @@ import { stripe, MIN_BID_CENTS, MAX_BID_CENTS } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
+import { classifyListing } from "@/lib/classifyListing";
+import { formatStatesMeta } from "@/lib/categories";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
@@ -92,6 +94,14 @@ export async function POST(req: NextRequest) {
     const logoUrl = fetched.imageUrl || "";
     const storedUrl = fetched.canonicalUrl || body.url.trim();
 
+    const classified = classifyListing({
+      category: body.category,
+      title,
+      description,
+      url: storedUrl,
+      signals: fetched.signals,
+    });
+
     const payment = await prisma.payment.create({
       data: {
         listingId: existing?.id ?? null,
@@ -134,6 +144,8 @@ export async function POST(req: NextRequest) {
         isHandle: "false",
         url: stripeSafe(storedUrl),
         existingListingId: existing?.id ?? "",
+        subcategory: stripeSafe(classified.subcategory || "", 80),
+        states: stripeSafe(formatStatesMeta(classified.states), 80),
       },
     });
 

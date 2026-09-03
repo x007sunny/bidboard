@@ -14,6 +14,8 @@ model Listing {
   title       String
   description String   @db.Text
   category    String   @default("Other")
+  subcategory String?
+  states      String[] @default([])
   logoUrl     String?
   bidCents    Int
   clicks      Int      @default(0)
@@ -25,6 +27,7 @@ model Listing {
 
   @@index([bidCents(sort: Desc)])
   @@index([lastBidAt(sort: Desc)])
+  @@index([category, subcategory])
 }
 
 model Payment {

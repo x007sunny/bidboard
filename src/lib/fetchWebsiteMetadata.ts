@@ -1,5 +1,11 @@
 import { fetchSocialMetadata } from "./social";
 import { isBlockedHost, safeFetch } from "./safeFetch";
+import {
+  extractHeadings,
+  extractTextSample,
+  parseJsonLdBlocks,
+  type PageSignals,
+} from "./classifyListing";
 
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_HTML_BYTES = 600_000;
@@ -11,9 +17,10 @@ export type WebsiteMetadata = {
   description: string;
   imageUrl: string | null;
   canonicalUrl: string;
+  signals?: PageSignals;
 };
 
-  const BOT_WALL_RE =
+const BOT_WALL_RE =
   /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|_incapsula_resource|incapsula|verify you are (a )?human|unusual traffic from your computer/i;
 
 export function normalizeWebsiteUrl(input: string): URL {
@@ -329,6 +336,14 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
   return { name: orgName || pageName, description };
 }
 
+function pageSignals(html: string): PageSignals {
+  return {
+    jsonLd: parseJsonLdBlocks(html),
+    headings: extractHeadings(html),
+    textSample: extractTextSample(html),
+  };
+}
+
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
   const social = await fetchSocialMetadata(rawUrl).catch(() => null);
   if (social) return social;
@@ -384,14 +399,15 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
       "seo_title",
     ]);
 
-        const title =
-      ogTitle ||
-      twitterTitle ||
-      htmlTitle ||
-      usefulTitle(jsonTitles[0]) ||
-      siteName ||
-      ld.name ||
-      fallbackTitle;
+    const title =
+      pickBestTitle([
+        ...jsonTitles,
+        ogTitle,
+        htmlTitle,
+        twitterTitle,
+        siteName,
+        ld.name,
+      ]) || fallbackTitle;
 
     const ogDesc = metaContent(html, ["og:description"]);
     const metaDesc = metaContent(html, ["description"]);
@@ -403,11 +419,11 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     const pairedDesc = pairedSeo ? unescapeJsonString(pairedSeo[1]) : null;
 
     let description = pickBestDescription([
-      ogDesc,
-      twitterDesc,
-      metaDesc,
       pairedDesc,
       ...jsonDescs,
+      metaDesc,
+      ogDesc,
+      twitterDesc,
       ld.description,
     ]);
     if (!description) {
@@ -435,6 +451,7 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
       description,
       imageUrl: imageUrl || fallbackImage,
       canonicalUrl: pageUrl.toString(),
+      signals: pageSignals(html),
     };
   } catch {
     return empty;

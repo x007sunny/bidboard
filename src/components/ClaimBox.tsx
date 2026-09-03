@@ -64,7 +64,7 @@ export function ClaimBox({
         </p>
       </div>
 
-      <div className="w-full min-w-0 lg:max-w-[37rem] rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
+      <div className="w-full min-w-0 lg:max-w-[32rem] rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-900">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xl sm:text-2xl font-bold tracking-tight">
           <span>Claim</span>
           <span className="text-indigo-600">#{predictedRank}</span>
