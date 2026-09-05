@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { saveListing } from "@/app/admin/actions";
-
-import { CATEGORIES } from "@/lib/categories";
+import { AU_NATIONAL, AU_STATES, CATEGORIES, subcategoriesFor } from "@/lib/categories";
 
 type Listing = {
   id: string;
@@ -10,6 +10,8 @@ type Listing = {
   title: string;
   description: string;
   category: string;
+  subcategory?: string | null;
+  states?: string[];
   logoUrl: string | null;
   bidCents: number;
   clicks: number;
@@ -22,6 +24,10 @@ export function AdminListingForm({
   listing?: Listing;
   error?: string;
 }) {
+  const [category, setCategory] = useState(listing?.category || "Other");
+  const subs = subcategoriesFor(category);
+  const selectedStates = new Set(listing?.states || []);
+
   return (
     <form action={saveListing} className="space-y-4">
       {listing && <input type="hidden" name="id" value={listing.id} />}
@@ -69,7 +75,8 @@ export function AdminListingForm({
         <span className="mb-1 block text-neutral-500">Category</span>
         <select
           name="category"
-          defaultValue={listing?.category || "Other"}
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
           className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 dark:border-neutral-700 dark:bg-neutral-900"
         >
           {CATEGORIES.map((c) => (
@@ -79,6 +86,52 @@ export function AdminListingForm({
           ))}
         </select>
       </label>
+
+      <label className="block text-sm">
+        <span className="mb-1 block text-neutral-500">Subcategory</span>
+        <select
+          name="subcategory"
+          defaultValue={listing?.subcategory || ""}
+          key={category}
+          className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          <option value="">(none)</option>
+          {subs.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <fieldset className="text-sm">
+        <legend className="mb-1 block text-neutral-500">States</legend>
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1 text-xs dark:border-neutral-700">
+            <input
+              type="checkbox"
+              name="states"
+              value={AU_NATIONAL}
+              defaultChecked={selectedStates.has(AU_NATIONAL)}
+            />
+            Australia
+          </label>
+          {AU_STATES.map((code) => (
+            <label
+              key={code}
+              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 px-3 py-1 text-xs dark:border-neutral-700"
+            >
+              <input
+                type="checkbox"
+                name="states"
+                value={code}
+                defaultChecked={selectedStates.has(code)}
+              />
+              {code}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <label className="block text-sm">
         <span className="mb-1 block text-neutral-500">Logo URL</span>
@@ -119,7 +172,7 @@ export function AdminListingForm({
         type="submit"
         className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
       >
-        {listing ? "Save changes" : "Add listing"}
+        Save listing
       </button>
     </form>
   );

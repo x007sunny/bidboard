@@ -5,6 +5,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { parseSocialUrl, socialCardAssets } from "@/lib/social";
+import { parseStates, validateTaxonomy } from "@/lib/categories";
 
 export const runtime = "nodejs";
 
@@ -78,21 +79,32 @@ export async function POST(req: NextRequest) {
   let description = meta.description || "";
   let logoUrl = meta.logoUrl || "";
   let url = meta.url || "";
+
+  // Confirmed values from the check-your-listing step. Do not re-classify over them.
+  const taxonomy = validateTaxonomy({
+    category: meta.category || "Other",
+    subcategory: meta.subcategory || "Other",
+    states: parseStates(meta.states),
+  });
+  const category = taxonomy.ok ? taxonomy.category : meta.category || "Other";
+  const subcategory = taxonomy.ok ? taxonomy.subcategory : meta.subcategory || null;
+  const states = taxonomy.ok ? taxonomy.states : parseStates(meta.states);
+
   try {
     const social = parseSocialUrl(meta.url || meta.uniqueKey);
     if (social) {
       const fresh = await socialCardAssets(meta.url || meta.uniqueKey);
-      if (fresh?.title) title = fresh.title;
-      if (fresh?.description) description = fresh.description;
-      if (fresh?.canonicalUrl) url = fresh.canonicalUrl;
-      if (fresh?.imageDataUrl) logoUrl = fresh.imageDataUrl;
-      else if (fresh?.imageUrl) logoUrl = fresh.imageUrl;
+      if (!logoUrl && fresh?.imageDataUrl) logoUrl = fresh.imageDataUrl;
+      else if (!logoUrl && fresh?.imageUrl) logoUrl = fresh.imageUrl;
+      if (!title && fresh?.title) title = fresh.title;
+      if (!description && fresh?.description) description = fresh.description;
+      if (!url && fresh?.canonicalUrl) url = fresh.canonicalUrl;
     } else {
       const fresh = await fetchWebsiteMetadata(meta.url || meta.uniqueKey);
-      if (fresh.title) title = fresh.title;
-      if (fresh.description) description = fresh.description;
-      if (fresh.imageUrl) logoUrl = fresh.imageUrl;
-      if (fresh.canonicalUrl) url = fresh.canonicalUrl;
+      if (!logoUrl && fresh.imageUrl) logoUrl = fresh.imageUrl;
+      if (!title && fresh.title) title = fresh.title;
+      if (!description && fresh.description) description = fresh.description;
+      if (!url && fresh.canonicalUrl) url = fresh.canonicalUrl;
     }
   } catch {
     // Stripe metadata is the fallback
@@ -126,7 +138,9 @@ export async function POST(req: NextRequest) {
               bidCents: locked.bidCents + paidCents,
               title: title || undefined,
               description: description || undefined,
-              category: meta.category || undefined,
+              category: category || undefined,
+              subcategory: subcategory || null,
+              states,
               logoUrl: logoUrl || undefined,
               url: url || undefined,
               lastBidAt: new Date(),
@@ -150,7 +164,9 @@ export async function POST(req: NextRequest) {
             url: url || meta.uniqueKey,
             title: title || meta.uniqueKey,
             description: description || "",
-            category: meta.category || "Other",
+            category: category || "Other",
+            subcategory: subcategory || null,
+            states,
             logoUrl: logoUrl || null,
             bidCents: paidCents,
             lastBidAt: new Date(),

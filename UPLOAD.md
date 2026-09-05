@@ -1,45 +1,58 @@
-# How to put this on GitHub (no terminal needed)
+# Bidboard — upload this zip
 
-Download **bidboard-fixed.zip** (the file from this chat). Do not use the old `bidboard-p0.zip`.
+This zip is the **full app**: categories + subcategory/state filters + auto-detect + **check-your-listing before payment**.
 
-## 1. Unzip on your computer
+Do **not** use `bidboard-fixed.zip`. That older zip dropped categories.
 
-You should see a folder called `bidboard-fixed` with `src`, `prisma`, `public`, `package.json`.
+Do these in order. You do not need a terminal.
 
-## 2. Upload over GitHub
+## 1. Neon (do this first)
 
-1. Open https://github.com/x007sunny/bidboard
-2. Click **Add file** → **Upload files**
-3. Drag **everything inside** `bidboard-fixed` (not the folder itself)
-4. Make sure these are included:
-   - `src/` (all of it)
-   - `prisma/`
-   - `public/favicon.png` and `public/logo.png`
-   - `package.json`
-   - `next.config.ts`
-5. Commit to **main**
+1. Open [console.neon.tech](https://console.neon.tech)
+2. Open your Bidboard project
+3. SQL Editor
+4. Paste everything in `NEON-subcategory-states.sql`
+5. Run
 
-Do **not** upload `node_modules` or `.next` (they are not in this zip).
+Safe to run even if you already ran it (`IF NOT EXISTS`). Existing listings stay on the board.
 
-You do **not** need to delete the repo. Uploading over the same filenames is enough.
+You do **not** need any other SQL.
 
-## 3. Wait for Vercel
+## 2. GitHub
 
-Open Vercel → bidboard project → Deployments.
+1. Unzip `bidboard.zip` on your computer
+2. Open [github.com/x007sunny/bidboard](https://github.com/x007sunny/bidboard)
+3. Upload **over** the existing files (do not delete `public/logo.png` if GitHub already has the latest logo)
+4. Commit to `main`
 
-Wait until the new one says **Ready** (green). Then hard-refresh https://bidboard.com.au
+Include:
 
-If it still looks old, wait 1 minute and hard-refresh again (Ctrl+Shift+R).
+- `src/` (all of it — including `src/app/check/` and `src/app/api/preview/`)
+- `prisma/`
+- `NEON-subcategory-states.sql`
+- `package.json` (do not bump unrelated packages)
+- `public/favicon.png` if it is in the zip
 
-## 4. Neon
+Do **not** upload `node_modules` or `.next`.
 
-You already created the `StripeEvent` and `Visitor` tables. You do **not** need to run SQL again.
+## 3. Vercel
 
-## What this zip fixes
+Wait until the deployment is Ready, then hard-refresh bidboard.com.au.
 
-- Vercel build error in `src/lib/safeFetch.ts`
-- Titles now prefer **og:title**, then twitter title, then the page `<title>`
-- Descriptions now prefer **og:description**, then the meta description
-- Skips junk titles like “Home”
-- Retries sites that block normal browsers (e.g. Harvey Norman)
-- Favicon in the browser tab
+## What you should see
+
+Homepage form is only:
+
+- website URL
+- **Get on the board**
+
+No category dropdown on the homepage.
+
+After submit: **Check your listing** (name, category, subcategory, location). Then Stripe.
+
+Existing listings stay visible. They get a subcategory / states when:
+
+- someone re-bids, **or**
+- you open Admin → Refresh title & description from website
+
+New listings are classified from the website. The bidder confirms or edits before paying. A listing is only created after Stripe payment succeeds.

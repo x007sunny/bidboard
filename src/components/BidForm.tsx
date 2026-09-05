@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { CATEGORIES } from "@/lib/categories";
 import { parseSocialUrl, socialAvatarSrc } from "@/lib/social";
+import { PREVIEW_STORAGE_KEY, type ListingPreview } from "@/lib/listingPreview";
 
 function extractHost(input: string): string | null {
   const raw = input.trim();
@@ -21,8 +21,12 @@ function previewIcon(input: string): string | null {
   const social = socialAvatarSrc(input);
   if (social) return social;
   const h = extractHost(input);
-  return h ? `https://www.google.com/s2/favicons?domain=${h}&sz=64` : null;
+  if (!h) return null;
+  if (h === "bidboard.com.au") return "/favicon.png";
+  return `https://www.google.com/s2/favicons?domain=${h}&sz=64`;
 }
+
+const LOADING_MESSAGES = ["Checking your website…", "Finding your business details…"];
 
 export function BidForm({
   defaultAmount = 5,
@@ -36,9 +40,9 @@ export function BidForm({
   existingUrl?: string;
 }) {
   const [url, setUrl] = useState(existingUrl);
-  const [category, setCategory] = useState("Other");
   const [amount, setAmount] = useState<number | "">(controlledAmount ?? defaultAmount);
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -46,6 +50,19 @@ export function BidForm({
       setAmount(controlledAmount);
     }
   }, [controlledAmount]);
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadingMsg(LOADING_MESSAGES[0]);
+      return;
+    }
+    let i = 0;
+    const id = window.setInterval(() => {
+      i = (i + 1) % LOADING_MESSAGES.length;
+      setLoadingMsg(LOADING_MESSAGES[i]);
+    }, 1600);
+    return () => window.clearInterval(id);
+  }, [loading]);
 
   const liveFavicon = useMemo(() => previewIcon(url), [url]);
 
@@ -80,12 +97,11 @@ export function BidForm({
     setLoading(true);
 
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           url: url.trim(),
-          category,
           amountCents: Math.round(numericAmount * 100),
         }),
       });
@@ -96,13 +112,11 @@ export function BidForm({
         throw new Error(data.error || "Something went wrong");
       }
 
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
+      const preview = data as ListingPreview;
+      sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(preview));
+      window.location.href = "/check";
     } catch (err: any) {
-      setError(err.message || "Failed to start checkout");
+      setError(err.message || "Failed to read website");
       setLoading(false);
     }
   }
@@ -131,27 +145,17 @@ export function BidForm({
             required
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="website, facebook, instagram"
-            className="w-full rounded-xl border border-neutral-300 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-950 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600"
+            placeholder="Enter your website URL"
+            disabled={loading}
+            className="w-full rounded-xl border border-neutral-300 py-2.5 pl-10 pr-3.5 text-sm outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 bg-white placeholder:text-neutral-300 dark:bg-neutral-950 dark:border-neutral-700 dark:text-white dark:placeholder:text-neutral-600 disabled:opacity-60"
           />
         </div>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-600 sm:w-32 bg-white dark:bg-neutral-950 dark:border-neutral-700 dark:text-white"
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
         <button
           type="submit"
           disabled={loading}
           className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 whitespace-nowrap"
         >
-          {loading ? "…" : "Get on the board"}
+          {loading ? loadingMsg : "Get on the board"}
         </button>
       </div>
 

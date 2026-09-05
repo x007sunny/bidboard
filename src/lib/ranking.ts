@@ -1,5 +1,10 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { parseSocialUrl } from "./social";
+import { listingWhere, type LeaderboardFilter } from "./listingWhere";
+
+export type { LeaderboardFilter };
+export { listingWhere };
 
 export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title: string; isHandle: boolean } {
   let cleaned = input.trim();
@@ -27,7 +32,7 @@ export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title:
     const url = new URL(cleaned);
     url.search = "";
     url.hash = "";
-    let host = url.hostname.replace(/^www\./, "");
+    const host = url.hostname.replace(/^www\./, "");
     const path = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
     const uniqueKey = `url:${host}${path}`.toLowerCase();
     const title = path ? `${host}${path}` : host;
@@ -42,19 +47,57 @@ export function normalizeUrlOrHandle(input: string): { uniqueKey: string; title:
   }
 }
 
-export async function getLeaderboard(limit = 100, page = 1) {
+export async function getLeaderboard(limit = 100, page = 1, filter: LeaderboardFilter = {}) {
   const skip = (page - 1) * limit;
-  const listings = await prisma.listing.findMany({
-    orderBy: [
-      { bidCents: "desc" },
-      { lastBidAt: "asc" },
-    ],
-    take: limit,
-    skip,
-  });
-
-  const total = await prisma.listing.count();
+  const where = listingWhere(filter) as Prisma.ListingWhereInput;
+  const [listings, total] = await Promise.all([
+    prisma.listing.findMany({
+      where,
+      orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
+      take: limit,
+      skip,
+    }),
+    prisma.listing.count({ where }),
+  ]);
   return { listings, total, page, limit };
+}
+
+export async function getBidLadder() {
+  return prisma.listing.findMany({
+    select: { id: true, bidCents: true },
+    orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
+  });
+}
+
+export async function getCategoryCounts(): Promise<Record<string, number>> {
+  const groups = await prisma.listing.groupBy({
+    by: ["category"],
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = { All: 0 };
+  for (const g of groups) {
+    counts[g.category] = g._count._all;
+    counts.All += g._count._all;
+  }
+  return counts;
+}
+
+export async function getSubcategoryCounts(
+  category: string,
+  state?: string
+): Promise<Record<string, number>> {
+  if (!category || category === "All") return {};
+  const where = listingWhere({ category, state }) as Prisma.ListingWhereInput;
+  const groups = await prisma.listing.groupBy({
+    by: ["subcategory"],
+    where: { ...where, subcategory: { not: null } },
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = {};
+  for (const g of groups) {
+    if (g.subcategory) counts[g.subcategory] = g._count._all;
+  }
+  return counts;
 }
 
 export async function getTopBidCents(): Promise<number> {

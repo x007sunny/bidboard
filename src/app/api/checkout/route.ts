@@ -3,12 +3,16 @@ import { z } from "zod";
 import { stripe, MIN_BID_CENTS, MAX_BID_CENTS } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
-import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
+import { fetchWebsiteMetadata, type WebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
+import { formatStatesMeta, validateTaxonomy } from "@/lib/categories";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
+  title: z.string().min(1).max(140),
   description: z.string().max(500).optional(),
   category: z.string().min(1).max(100),
+  subcategory: z.string().min(1).max(80),
+  states: z.array(z.string()).min(1),
   amountCents: z.number().int().min(MIN_BID_CENTS).max(MAX_BID_CENTS),
 });
 
@@ -20,6 +24,15 @@ export async function POST(req: NextRequest) {
   try {
     const json = await req.json();
     const body = bodySchema.parse(json);
+
+    const taxonomy = validateTaxonomy({
+      category: body.category,
+      subcategory: body.subcategory,
+      states: body.states,
+    });
+    if (!taxonomy.ok) {
+      return NextResponse.json({ error: taxonomy.error }, { status: 400 });
+    }
 
     if (body.url.trim().startsWith("@")) {
       return NextResponse.json(
@@ -74,10 +87,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    let fetched = {
+    let fetched: WebsiteMetadata = {
       title: domainTitle,
       description: "",
-      imageUrl: null as string | null,
+      imageUrl: null,
       canonicalUrl: body.url.trim(),
     };
     try {
@@ -86,9 +99,8 @@ export async function POST(req: NextRequest) {
       // Listing submission must never fail because metadata fetch failed.
     }
 
-    const optionalDescription = body.description?.trim() || "";
-    const title = fetched.title || domainTitle;
-    const description = optionalDescription || fetched.description || "";
+    const title = body.title.trim() || fetched.title || domainTitle;
+    const description = body.description?.trim() || fetched.description || "";
     const logoUrl = fetched.imageUrl || "";
     const storedUrl = fetched.canonicalUrl || body.url.trim();
 
@@ -128,12 +140,14 @@ export async function POST(req: NextRequest) {
         uniqueKey: stripeSafe(uniqueKey),
         title: stripeSafe(title),
         description: stripeSafe(description),
-        category: stripeSafe(body.category, 100),
+        category: stripeSafe(taxonomy.category, 100),
         logoUrl: stripeSafe(logoUrl),
         newBidCents: String(body.amountCents),
         isHandle: "false",
         url: stripeSafe(storedUrl),
         existingListingId: existing?.id ?? "",
+        subcategory: stripeSafe(taxonomy.subcategory, 80),
+        states: stripeSafe(formatStatesMeta(taxonomy.states), 80),
       },
     });
 

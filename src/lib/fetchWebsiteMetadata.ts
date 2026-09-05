@@ -1,5 +1,12 @@
 import { fetchSocialMetadata } from "./social";
 import { isBlockedHost, safeFetch } from "./safeFetch";
+import {
+  extractHeadings,
+  extractRegionHints,
+  extractTextSample,
+  parseJsonLdBlocks,
+  type PageSignals,
+} from "./classifyListing";
 
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_HTML_BYTES = 600_000;
@@ -16,10 +23,12 @@ export type WebsiteMetadata = {
   description: string;
   imageUrl: string | null;
   canonicalUrl: string;
+  signals?: PageSignals;
+  scraped?: boolean;
 };
 
 const BOT_WALL_RE =
-  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|verify you are (a )?human|unusual traffic from your computer/i;
+  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|_incapsula_resource|verify you are (a )?human|unusual traffic from your computer/i;
 
 export function normalizeWebsiteUrl(input: string): URL {
   let cleaned = input.trim();
@@ -314,7 +323,11 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
         if (/BreadcrumbList|ListItem/i.test(type)) continue;
         const rawName = typeof node.name === "string" ? node.name : null;
         const name = usefulTitle(rawName);
-        if (name && !orgName && /organization|localbusiness|store|plumber|electrician|company/i.test(type)) {
+        if (
+          name &&
+          !orgName &&
+          /organization|localbusiness|store|supermarket|plumber|electrician|company/i.test(type)
+        ) {
           orgName = name;
         }
         if (name && !orgName && /website/i.test(type)) {
@@ -334,7 +347,21 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
   return { name: orgName || pageName, description };
 }
 
-function parseHtmlMetadata(html: string, pageUrl: URL, fallbackTitle: string, fallbackImage: string): WebsiteMetadata {
+function pageSignals(html: string): PageSignals {
+  return {
+    jsonLd: parseJsonLdBlocks(html),
+    headings: extractHeadings(html),
+    textSample: extractTextSample(html),
+    regionHints: extractRegionHints(html),
+  };
+}
+
+function parseHtmlMetadata(
+  html: string,
+  pageUrl: URL,
+  fallbackTitle: string,
+  fallbackImage: string
+): WebsiteMetadata {
   const ld = jsonLdNameAndDescription(html);
   const ogTitle = metaContent(html, ["og:title"]);
   const twitterTitle = metaContent(html, ["twitter:title"]);
@@ -375,6 +402,8 @@ function parseHtmlMetadata(html: string, pageUrl: URL, fallbackTitle: string, fa
     description,
     imageUrl: imageUrl || fallbackImage,
     canonicalUrl: pageUrl.toString(),
+    signals: pageSignals(html),
+    scraped: true,
   };
 }
 
@@ -409,7 +438,15 @@ async function fetchHtml(pageUrl: URL): Promise<string | null> {
 
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
   const social = await fetchSocialMetadata(rawUrl).catch(() => null);
-  if (social) return social;
+  if (social) {
+    return {
+      title: social.title,
+      description: social.description,
+      imageUrl: social.imageUrl,
+      canonicalUrl: social.canonicalUrl,
+      scraped: true,
+    };
+  }
 
   const pageUrl = normalizeWebsiteUrl(rawUrl);
   const fallbackTitle = cleanedDomainName(pageUrl.hostname);
@@ -419,6 +456,7 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
     description: "",
     imageUrl: fallbackImage,
     canonicalUrl: pageUrl.toString(),
+    scraped: false,
   };
 
   try {
