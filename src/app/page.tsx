@@ -3,7 +3,7 @@ import { getLeaderboard, getTopBidCents } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
 import { ActivityTicker } from "@/components/ActivityTicker";
 import { ClaimBox } from "@/components/ClaimBox";
-import { BoardFilters } from "@/components/BoardFilters";
+import { CategoryFilter } from "@/components/CategoryFilter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { prisma } from "@/lib/prisma";
@@ -15,27 +15,20 @@ export const revalidate = 0;
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; category?: string; subcategory?: string; state?: string }>;
+  searchParams: Promise<{ page?: string; category?: string }>;
 }) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page || "1", 10));
   const category = params.category || "All";
-  const subcategory = params.subcategory || "";
-  const state = (params.state || "").toUpperCase();
 
   const { listings: allListings, total: allTotal } = await getLeaderboard(200, 1);
   const topBid = await getTopBidCents();
 
   // Filter by category if needed
-  const filtered = allListings.filter((l) => {
-    if (category !== "All" && l.category !== category) return false;
-    if (subcategory && l.subcategory !== subcategory) return false;
-    if (state) {
-      const states = l.states || [];
-      if (!states.includes(state)) return false;
-    }
-    return true;
-  });
+  const filtered =
+    category === "All"
+      ? allListings
+      : allListings.filter((l) => l.category === category);
 
   const total = filtered.length;
   const start = (page - 1) * 50;
@@ -60,11 +53,6 @@ export default async function HomePage({
   for (const l of allListings) {
     categoryCounts[l.category] = (categoryCounts[l.category] || 0) + 1;
   }
-  const subcategoryCounts: Record<string, number> = {};
-  for (const l of allListings) {
-    if (l.category !== category || !l.subcategory) continue;
-    subcategoryCounts[l.subcategory] = (subcategoryCounts[l.subcategory] || 0) + 1;
-  }
 
   return (
     <main>
@@ -72,13 +60,8 @@ export default async function HomePage({
 
       <ClaimBox topBidCents={topBid} listings={bidList} />
 
-      <BoardFilters
-        category={category}
-        subcategory={subcategory}
-        state={state}
-        categoryCounts={categoryCounts}
-        subcategoryCounts={subcategoryCounts}
-      />
+      {/* Category chips */}
+      <CategoryFilter current={category} counts={categoryCounts} />
 
       <ActivityTicker />
 
@@ -117,7 +100,7 @@ export default async function HomePage({
           <div className="mt-8 flex justify-center gap-6 text-sm">
             {page > 1 && (
               <Link
-                href={`/?page=${page - 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}${subcategory ? `&subcategory=${encodeURIComponent(subcategory)}` : ""}${state ? `&state=${encodeURIComponent(state)}` : ""}`}
+                href={`/?page=${page - 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}`}
                 className="text-neutral-600 hover:text-black"
               >
                 ← Previous
@@ -128,7 +111,7 @@ export default async function HomePage({
             </span>
             {page * 50 < total && (
               <Link
-                href={`/?page=${page + 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}${subcategory ? `&subcategory=${encodeURIComponent(subcategory)}` : ""}${state ? `&state=${encodeURIComponent(state)}` : ""}`}
+                href={`/?page=${page + 1}${category !== "All" ? `&category=${encodeURIComponent(category)}` : ""}`}
                 className="text-neutral-600 hover:text-black"
               >
                 Next →

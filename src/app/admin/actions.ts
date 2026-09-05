@@ -7,8 +7,6 @@ import { prisma } from "@/lib/prisma";
 import { ADMIN_COOKIE, adminToken, isAdmin, passwordOk } from "@/lib/adminAuth";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
-import { classifyListing } from "@/lib/classifyListing";
-import { parseStates, isKnownSubcategory } from "@/lib/categories";
 
 export async function loginAdmin(formData: FormData) {
   const password = String(formData.get("password") || "");
@@ -46,11 +44,6 @@ export async function saveListing(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const description = String(formData.get("description") || "");
   const category = String(formData.get("category") || "Other");
-  const subcategoryRaw = String(formData.get("subcategory") || "").trim();
-  const subcategory = isKnownSubcategory(category, subcategoryRaw) ? subcategoryRaw : null;
-  const states = parseStates(
-    formData.getAll("states").map((v) => String(v)).join(",")
-  );
   const logoUrl = String(formData.get("logoUrl") || "").trim() || null;
   const clicks = Math.max(0, parseInt(String(formData.get("clicks") || "0"), 10) || 0);
   const bidCents = dollarsToCents(String(formData.get("bid") || "0"));
@@ -70,8 +63,6 @@ export async function saveListing(formData: FormData) {
           title,
           description,
           category,
-          subcategory,
-          states,
           logoUrl,
           clicks,
           bidCents,
@@ -85,8 +76,6 @@ export async function saveListing(formData: FormData) {
           title,
           description,
           category,
-          subcategory,
-          states,
           logoUrl,
           clicks,
           bidCents,
@@ -130,13 +119,6 @@ export async function refreshListingMetadata(formData: FormData) {
 
   try {
     const meta = await fetchWebsiteMetadata(listing.url);
-    const classified = classifyListing({
-      category: listing.category,
-      title: meta.title || listing.title,
-      description: meta.description || listing.description,
-      url: meta.canonicalUrl || listing.url,
-      signals: meta.signals,
-    });
     await prisma.listing.update({
       where: { id },
       data: {
@@ -144,8 +126,6 @@ export async function refreshListingMetadata(formData: FormData) {
         description: meta.description || listing.description,
         logoUrl: meta.imageUrl || listing.logoUrl,
         url: meta.canonicalUrl || listing.url,
-        subcategory: classified.subcategory || listing.subcategory,
-        states: classified.states.length ? classified.states : listing.states,
       },
     });
   } catch {

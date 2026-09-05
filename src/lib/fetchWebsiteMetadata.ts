@@ -1,27 +1,25 @@
 import { fetchSocialMetadata } from "./social";
 import { isBlockedHost, safeFetch } from "./safeFetch";
-import {
-  extractHeadings,
-  extractTextSample,
-  parseJsonLdBlocks,
-  type PageSignals,
-} from "./classifyListing";
 
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_HTML_BYTES = 600_000;
 const TITLE_MAX = 140;
 const DESCRIPTION_MAX = 280;
 
+const USER_AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+];
+
 export type WebsiteMetadata = {
   title: string;
   description: string;
   imageUrl: string | null;
   canonicalUrl: string;
-  signals?: PageSignals;
 };
 
 const BOT_WALL_RE =
-  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|_incapsula_resource|incapsula|verify you are (a )?human|unusual traffic from your computer/i;
+  /pardon our interruption|just a moment|attention required|as you were browsing|think you were a bot|you were a bot|checking your browser|cf-browser-verification|challenge-platform\/h\/|cdn-cgi\/challenge|verify you are (a )?human|unusual traffic from your computer/i;
 
 export function normalizeWebsiteUrl(input: string): URL {
   let cleaned = input.trim();
@@ -122,7 +120,9 @@ function linkHref(html: string, rels: string[]): string | null {
 }
 
 function titleTag(html: string): string | null {
-  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const head = html.match(/<head\b[^>]*>([\s\S]*?)<\/head>/i)?.[1];
+  const scope = head || html.slice(0, 80_000);
+  const m = scope.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
   if (!m) return null;
   return m[1];
 }
@@ -149,10 +149,12 @@ function cleanedDomainName(hostname: string): string {
   return spaced.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function isChallengePage(html: string, title = "", description = ""): boolean {
-  if (BOT_WALL_RE.test(`${title} ${description}`)) return true;
-  const snippet = html.slice(0, 4000);
-  return BOT_WALL_RE.test(snippet);
+function looksLikeChallenge(html: string, title = ""): boolean {
+  if (BOT_WALL_RE.test(title)) return true;
+  const head = html.slice(0, 2500);
+  return /pardon our interruption|just a moment|cf-browser-verification|challenge-platform\/h\/|checking your browser/i.test(
+    head
+  );
 }
 
 function isJunkText(text: string): boolean {
@@ -162,7 +164,11 @@ function isJunkText(text: string): boolean {
 function isGenericTitle(text: string): boolean {
   const t = text.trim().toLowerCase();
   if (!t) return true;
-  if (/^(home|homepage|index|welcome|untitled|default|new page|page not found|404|home page)(\s*[\|–—:-].*)?$/.test(t)) {
+  if (
+    /^(home|homepage|index|welcome|untitled|default|new page|page not found|404|home page|just a moment\.?|pardon our interruption)(\s*[\|–—:-].*)?$/.test(
+      t
+    )
+  ) {
     return true;
   }
   return false;
@@ -191,6 +197,17 @@ function usefulDescription(raw: string | null | undefined): string | null {
   return t;
 }
 
+function firstUseful(
+  candidates: Array<string | null | undefined>,
+  kind: "title" | "description"
+): string | null {
+  for (const c of candidates) {
+    const t = kind === "title" ? usefulTitle(c) : usefulDescription(c);
+    if (t) return t;
+  }
+  return null;
+}
+
 function unescapeJsonString(value: string): string {
   return value
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
@@ -210,28 +227,6 @@ function jsonStringValues(html: string, keys: string[]): string[] {
     }
   }
   return out;
-}
-
-function pickBestTitle(candidates: Array<string | null | undefined>): string | null {
-  const list = [...new Set(candidates.map((c) => usefulTitle(c)).filter(Boolean))] as string[];
-  if (list.length === 0) return null;
-  const scored = list.map((t) => {
-    let score = Math.min(t.length, 80);
-    if (/[|–—]/.test(t)) score += 50;
-    if (t.split(/\s+/).length >= 4) score += 20;
-    if (t.length < 14) score -= 25;
-    return { t, score };
-  });
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0].t;
-}
-
-function pickBestDescription(candidates: Array<string | null | undefined>): string {
-  for (const c of candidates) {
-    const t = usefulDescription(c);
-    if (t) return t;
-  }
-  return "";
 }
 
 function pageTextFallback(html: string): string {
@@ -301,11 +296,14 @@ async function readHtml(res: Response): Promise<string> {
 }
 
 function jsonLdNameAndDescription(html: string): { name: string | null; description: string | null } {
-  const blocks = html.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+  const scripts = html.match(/<script\b[^>]*>[\s\S]*?<\/script>/gi) || [];
   let orgName: string | null = null;
   let pageName: string | null = null;
   let description: string | null = null;
-  for (const block of blocks) {
+
+  for (const block of scripts) {
+    const open = block.match(/^<script\b[^>]*>/i)?.[0] || "";
+    if (!/ld\+json/i.test(open)) continue;
     const inner = block.replace(/^<script[^>]*>/i, "").replace(/<\/script>$/i, "");
     try {
       const parsed = JSON.parse(inner);
@@ -336,12 +334,77 @@ function jsonLdNameAndDescription(html: string): { name: string | null; descript
   return { name: orgName || pageName, description };
 }
 
-function pageSignals(html: string): PageSignals {
+function parseHtmlMetadata(html: string, pageUrl: URL, fallbackTitle: string, fallbackImage: string): WebsiteMetadata {
+  const ld = jsonLdNameAndDescription(html);
+  const ogTitle = metaContent(html, ["og:title"]);
+  const twitterTitle = metaContent(html, ["twitter:title"]);
+  const htmlTitle = titleTag(html);
+  const siteName = metaContent(html, ["og:site_name", "application-name", "apple-mobile-web-app-title"]);
+  const jsonTitles = jsonStringValues(html, ["metaTitle", "seoTitle", "seo_title"]);
+
+  // Strict priority: og:title → twitter:title → <title> → site name → JSON-LD → other JSON → domain
+  const title =
+    firstUseful([ogTitle, twitterTitle, htmlTitle, siteName, ld.name, ...jsonTitles], "title") ||
+    fallbackTitle;
+
+  const ogDesc = metaContent(html, ["og:description"]);
+  const metaDesc = metaContent(html, ["description"]);
+  const twitterDesc = metaContent(html, ["twitter:description"]);
+  const jsonDescs = jsonStringValues(html, ["metaDescription", "seoDescription", "seo_description"]);
+
+  let description =
+    firstUseful([ogDesc, metaDesc, twitterDesc, ld.description, ...jsonDescs], "description") || "";
+  if (!description) {
+    const fallback = pageTextFallback(html);
+    description = usefulDescription(fallback) || "";
+  }
+
+  const ogImage = metaContent(html, ["og:image", "og:image:url"]);
+  const twitterImage = metaContent(html, ["twitter:image", "twitter:image:src"]);
+  const appleIcon = linkHref(html, ["apple-touch-icon", "apple-touch-icon-precomposed"]);
+  const favicon = linkHref(html, ["icon", "shortcut icon"]);
+  const imageUrl = pickListingImage(pageUrl, {
+    appleIcon: toAbsolute(pageUrl, appleIcon),
+    favicon: toAbsolute(pageUrl, favicon),
+    ogImage: toAbsolute(pageUrl, ogImage),
+    twitterImage: toAbsolute(pageUrl, twitterImage),
+  });
+
   return {
-    jsonLd: parseJsonLdBlocks(html),
-    headings: extractHeadings(html),
-    textSample: extractTextSample(html),
+    title,
+    description,
+    imageUrl: imageUrl || fallbackImage,
+    canonicalUrl: pageUrl.toString(),
   };
+}
+
+async function fetchHtml(pageUrl: URL): Promise<string | null> {
+  for (const ua of USER_AGENTS) {
+    try {
+      const res = await safeFetch(pageUrl, {
+        method: "GET",
+        timeoutMs: FETCH_TIMEOUT_MS,
+        maxRedirects: 3,
+        headers: {
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-AU,en;q=0.9",
+          "User-Agent": ua,
+        },
+      });
+      if (!res.ok) continue;
+      const contentType = res.headers.get("content-type") || "";
+      if (/json|image|pdf|octet-stream|javascript/i.test(contentType) && !/html/i.test(contentType)) {
+        continue;
+      }
+      const html = await readHtml(res);
+      if (!html) continue;
+      if (looksLikeChallenge(html, titleTag(html) || "")) continue;
+      return html;
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetadata> {
@@ -359,100 +422,9 @@ export async function fetchWebsiteMetadata(rawUrl: string): Promise<WebsiteMetad
   };
 
   try {
-    const res = await safeFetch(pageUrl, {
-      method: "GET",
-      timeoutMs: FETCH_TIMEOUT_MS,
-      maxRedirects: 3,
-      headers: {
-        Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-AU,en;q=0.9",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-      },
-    });
-
-    const html = await readHtml(res);
+    const html = await fetchHtml(pageUrl);
     if (!html) return empty;
-
-    if (isChallengePage(html, titleTag(html) || "")) {
-      return empty;
-    }
-
-    if (!res.ok) return empty;
-
-    const contentType = res.headers.get("content-type") || "";
-    if (/json|image|pdf|octet-stream|javascript/i.test(contentType) && !/html/i.test(contentType)) {
-      return empty;
-    }
-
-    const ld = jsonLdNameAndDescription(html);
-    const ogTitle = usefulTitle(metaContent(html, ["og:title"]));
-    const twitterTitle = usefulTitle(metaContent(html, ["twitter:title"]));
-    const htmlTitle = usefulTitle(titleTag(html));
-    const siteName = usefulTitle(
-      metaContent(html, ["og:site_name", "application-name", "apple-mobile-web-app-title"])
-    );
-    const jsonTitles = jsonStringValues(html, [
-      "metaTitle",
-      "seoTitle",
-      "seo_title",
-    ]);
-
-    const title =
-      pickBestTitle([
-        ...jsonTitles,
-        ogTitle,
-        htmlTitle,
-        twitterTitle,
-        siteName,
-        ld.name,
-      ]) || fallbackTitle;
-
-    const ogDesc = metaContent(html, ["og:description"]);
-    const metaDesc = metaContent(html, ["description"]);
-    const twitterDesc = metaContent(html, ["twitter:description"]);
-    const jsonDescs = jsonStringValues(html, ["metaDescription", "seoDescription", "seo_description"]);
-    const pairedSeo = html.match(
-      /"metaTitle"\s*:\s*"(?:\\.|[^"\\])*"[\s\S]{0,500}?"description"\s*:\s*"((?:\\.|[^"\\])*)"/i
-    );
-    const pairedDesc = pairedSeo ? unescapeJsonString(pairedSeo[1]) : null;
-
-    let description = pickBestDescription([
-      pairedDesc,
-      ...jsonDescs,
-      metaDesc,
-      ogDesc,
-      twitterDesc,
-      ld.description,
-    ]);
-    if (!description) {
-      description = pageTextFallback(html);
-      if (isPromoDescription(description) || isJunkText(description)) description = "";
-    }
-
-    if (isJunkText(description) || isChallengePage(html, title, description)) {
-      return empty;
-    }
-
-    const ogImage = metaContent(html, ["og:image", "og:image:url"]);
-    const twitterImage = metaContent(html, ["twitter:image", "twitter:image:src"]);
-    const appleIcon = linkHref(html, ["apple-touch-icon", "apple-touch-icon-precomposed"]);
-    const favicon = linkHref(html, ["icon", "shortcut icon"]);
-    const imageUrl = pickListingImage(pageUrl, {
-      appleIcon: toAbsolute(pageUrl, appleIcon),
-      favicon: toAbsolute(pageUrl, favicon),
-      ogImage: toAbsolute(pageUrl, ogImage),
-      twitterImage: toAbsolute(pageUrl, twitterImage),
-    });
-
-    return {
-      title,
-      description,
-      imageUrl: imageUrl || fallbackImage,
-      canonicalUrl: pageUrl.toString(),
-      signals: pageSignals(html),
-    };
+    return parseHtmlMetadata(html, pageUrl, fallbackTitle, fallbackImage);
   } catch {
     return empty;
   }

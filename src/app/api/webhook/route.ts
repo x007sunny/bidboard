@@ -5,8 +5,6 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { parseSocialUrl, socialCardAssets } from "@/lib/social";
-import { classifyListing } from "@/lib/classifyListing";
-import { parseStates } from "@/lib/categories";
 
 export const runtime = "nodejs";
 
@@ -80,18 +78,6 @@ export async function POST(req: NextRequest) {
   let description = meta.description || "";
   let logoUrl = meta.logoUrl || "";
   let url = meta.url || "";
-  let classified = classifyListing({
-    category: meta.category || "Other",
-    title,
-    description,
-    url,
-  });
-  if (meta.subcategory && !classified.subcategory) {
-    classified = { ...classified, subcategory: meta.subcategory };
-  }
-  if (classified.states.length === 0) {
-    classified = { ...classified, states: parseStates(meta.states) };
-  }
   try {
     const social = parseSocialUrl(meta.url || meta.uniqueKey);
     if (social) {
@@ -107,19 +93,6 @@ export async function POST(req: NextRequest) {
       if (fresh.description) description = fresh.description;
       if (fresh.imageUrl) logoUrl = fresh.imageUrl;
       if (fresh.canonicalUrl) url = fresh.canonicalUrl;
-      classified = classifyListing({
-        category: meta.category || "Other",
-        title,
-        description,
-        url,
-        signals: fresh.signals,
-      });
-      if (!classified.subcategory && meta.subcategory) {
-        classified = { ...classified, subcategory: meta.subcategory };
-      }
-      if (classified.states.length === 0) {
-        classified = { ...classified, states: parseStates(meta.states) };
-      }
     }
   } catch {
     // Stripe metadata is the fallback
@@ -147,10 +120,6 @@ export async function POST(req: NextRequest) {
         const paidCents = payment.amountCents;
 
         if (locked) {
-          const current = await tx.listing.findUnique({
-            where: { id: locked.id },
-            select: { subcategory: true, states: true },
-          });
           await tx.listing.update({
             where: { id: locked.id },
             data: {
@@ -161,12 +130,6 @@ export async function POST(req: NextRequest) {
               logoUrl: logoUrl || undefined,
               url: url || undefined,
               lastBidAt: new Date(),
-              ...(current?.subcategory
-                ? {}
-                : { subcategory: classified.subcategory || null }),
-              ...(current?.states?.length
-                ? {}
-                : { states: classified.states }),
             },
           });
 
@@ -188,8 +151,6 @@ export async function POST(req: NextRequest) {
             title: title || meta.uniqueKey,
             description: description || "",
             category: meta.category || "Other",
-            subcategory: classified.subcategory || null,
-            states: classified.states,
             logoUrl: logoUrl || null,
             bidCents: paidCents,
             lastBidAt: new Date(),

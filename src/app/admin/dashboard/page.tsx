@@ -53,8 +53,6 @@ export default async function AdminDashboardPage() {
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">URL</th>
               <th className="px-3 py-2">Category</th>
-              <th className="px-3 py-2">Sub</th>
-              <th className="px-3 py-2">States</th>
               <th className="px-3 py-2">Bid</th>
               <th className="px-3 py-2">Clicks</th>
               <th className="px-3 py-2"></th>
@@ -63,7 +61,7 @@ export default async function AdminDashboardPage() {
           <tbody>
             {listings.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-500">
+                <td colSpan={7} className="px-3 py-8 text-center text-neutral-500">
                   No listings yet.
                 </td>
               </tr>
@@ -74,10 +72,6 @@ export default async function AdminDashboardPage() {
                 <td className="px-3 py-2 font-medium">{listing.title}</td>
                 <td className="max-w-[180px] truncate px-3 py-2 text-neutral-500">{listing.url}</td>
                 <td className="px-3 py-2">{listing.category}</td>
-                <td className="px-3 py-2 text-neutral-500">{listing.subcategory || "—"}</td>
-                <td className="px-3 py-2 text-neutral-500">
-                  {(listing.states || []).join(" ") || "—"}
-                </td>
                 <td className="px-3 py-2 font-semibold">{formatAUD(listing.bidCents)}</td>
                 <td className="px-3 py-2">{listing.clicks}</td>
                 <td className="px-3 py-2">
