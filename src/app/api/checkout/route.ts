@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata, type WebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { formatStatesMeta, validateTaxonomy } from "@/lib/categories";
+import { taxonomyMap } from "@/lib/taxonomy";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
@@ -25,11 +26,15 @@ export async function POST(req: NextRequest) {
     const json = await req.json();
     const body = bodySchema.parse(json);
 
-    const taxonomy = validateTaxonomy({
-      category: body.category,
-      subcategory: body.subcategory,
-      states: body.states,
-    });
+    const map = await taxonomyMap();
+    const taxonomy = validateTaxonomy(
+      {
+        category: body.category,
+        subcategory: body.subcategory,
+        states: body.states,
+      },
+      map
+    );
     if (!taxonomy.ok) {
       return NextResponse.json({ error: taxonomy.error }, { status: 400 });
     }

@@ -29,6 +29,12 @@ export default async function AdminDashboardPage() {
             View site
           </Link>
           <Link
+            href="/admin/categories"
+            className="rounded-xl border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            Categories
+          </Link>
+          <Link
             href="/admin/new"
             className="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
           >

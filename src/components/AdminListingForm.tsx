@@ -20,12 +20,20 @@ type Listing = {
 export function AdminListingForm({
   listing,
   error,
+  taxonomy,
 }: {
   listing?: Listing;
   error?: string;
+  taxonomy?: { name: string; subcategories: string[] }[];
 }) {
-  const [category, setCategory] = useState(listing?.category || "Other");
-  const subs = subcategoriesFor(category);
+  const categoryNames = taxonomy?.length ? taxonomy.map((t) => t.name) : [...CATEGORIES];
+  const [category, setCategory] = useState(
+    listing?.category || categoryNames[0] || "Other"
+  );
+  const map = taxonomy?.length
+    ? Object.fromEntries(taxonomy.map((t) => [t.name, t.subcategories]))
+    : undefined;
+  const subs = subcategoriesFor(category, map);
   const selectedStates = new Set(listing?.states || []);
 
   return (
@@ -79,7 +87,7 @@ export function AdminListingForm({
           onChange={(e) => setCategory(e.target.value)}
           className="w-full rounded-xl border border-neutral-300 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-indigo-600 dark:border-neutral-700 dark:bg-neutral-900"
         >
-          {CATEGORIES.map((c) => (
+          {categoryNames.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>

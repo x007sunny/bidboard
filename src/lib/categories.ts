@@ -82,17 +82,41 @@ export const SUBCATEGORIES: Record<string, readonly string[]> = {
   Other: ["Other"],
 };
 
-export function subcategoriesFor(category: string): readonly string[] {
+/** Homepage pill order (All is prepended in the UI). */
+export const CATEGORY_DISPLAY_ORDER = [
+  "Restaurants",
+  "Trades",
+  "Auto & Transport",
+  "Retail & Shops",
+  "Online Shops",
+  "Professional Services",
+  "Real Estate",
+  "Other",
+  "Cafes & Coffee",
+  "Home Services",
+  "Beauty & Wellness",
+  "Health & Fitness",
+] as const;
+
+export type TaxonomyMap = Record<string, readonly string[]>;
+
+export function subcategoriesFor(category: string, taxonomy?: TaxonomyMap): readonly string[] {
+  if (taxonomy) return taxonomy[category] || ["Other"];
   return SUBCATEGORIES[category] || ["Other"];
 }
 
-export function isCategoryName(value: string): value is CategoryName {
+export function isCategoryName(value: string, taxonomy?: TaxonomyMap): boolean {
+  if (taxonomy) return Object.prototype.hasOwnProperty.call(taxonomy, value);
   return (CATEGORIES as readonly string[]).includes(value);
 }
 
-export function isKnownSubcategory(category: string, sub: string | null | undefined): boolean {
+export function isKnownSubcategory(
+  category: string,
+  sub: string | null | undefined,
+  taxonomy?: TaxonomyMap
+): boolean {
   if (!sub) return false;
-  return subcategoriesFor(category).includes(sub);
+  return subcategoriesFor(category, taxonomy).includes(sub);
 }
 
 export function parseStates(raw: string | null | undefined): string[] {
@@ -134,19 +158,22 @@ export function confirmedStates(input: string[]): string[] {
   return unique.filter((s) => s !== AU_NATIONAL);
 }
 
-export function validateTaxonomy(input: {
-  category: string;
-  subcategory?: string | null;
-  states?: string[] | string | null;
-}):
-  | { ok: true; category: CategoryName; subcategory: string; states: string[] }
+export function validateTaxonomy(
+  input: {
+    category: string;
+    subcategory?: string | null;
+    states?: string[] | string | null;
+  },
+  taxonomy?: TaxonomyMap
+):
+  | { ok: true; category: string; subcategory: string; states: string[] }
   | { ok: false; error: string } {
   const category = (input.category || "").trim();
-  if (!isCategoryName(category)) {
+  if (!isCategoryName(category, taxonomy)) {
     return { ok: false, error: "Please select a category before continuing." };
   }
   const subcategory = (input.subcategory || "").trim();
-  if (!isKnownSubcategory(category, subcategory)) {
+  if (!isKnownSubcategory(category, subcategory, taxonomy)) {
     return { ok: false, error: "Please select a subcategory before continuing." };
   }
   const rawStates = Array.isArray(input.states) ? input.states : parseStates(input.states);

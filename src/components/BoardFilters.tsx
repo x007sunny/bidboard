@@ -2,23 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AU_NATIONAL, AU_STATES, subcategoriesFor } from "@/lib/categories";
-
-const TOP_CATEGORIES = [
-  "All",
-  "Restaurants",
-  "Trades",
-  "Auto & Transport",
-  "Retail & Shops",
-  "Online Shops",
-  "Professional Services",
-  "Real Estate",
-  "Other",
-  "Cafes & Coffee",
-  "Home Services",
-  "Beauty & Wellness",
-  "Health & Fitness",
-];
+import { AU_NATIONAL, AU_STATES, CATEGORY_DISPLAY_ORDER, subcategoriesFor } from "@/lib/categories";
 
 function href(opts: {
   category?: string;
@@ -46,20 +30,30 @@ export function BoardFilters({
   state,
   categoryCounts,
   subcategoryCounts,
+  categoryNames,
+  subcategories,
 }: {
   category: string;
   subcategory: string;
   state: string;
   categoryCounts: Record<string, number>;
   subcategoryCounts: Record<string, number>;
+  categoryNames?: string[];
+  subcategories?: string[];
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const cats = TOP_CATEGORIES.filter(
-    (c) => c === "All" || (categoryCounts[c] && categoryCounts[c] > 0) || c === category
+  const ordered = categoryNames?.length ? categoryNames : [...CATEGORY_DISPLAY_ORDER];
+  const defaults = new Set<string>(CATEGORY_DISPLAY_ORDER);
+  const cats = ["All", ...ordered.filter((c) => c !== "All")].filter(
+    (c) =>
+      c === "All" ||
+      (categoryCounts[c] && categoryCounts[c] > 0) ||
+      c === category ||
+      !defaults.has(c)
   );
 
-  const allSubs = subcategoriesFor(category);
+  const allSubs = subcategories?.length ? subcategories : subcategoriesFor(category);
   const ranked = useMemo(() => {
     return [...allSubs]
       .filter((s) => s !== "Other")
@@ -67,11 +61,9 @@ export function BoardFilters({
   }, [allSubs, subcategoryCounts]);
 
   const topFive = ranked.filter((s) => (subcategoryCounts[s] || 0) > 0).slice(0, 5);
-  const visible =
-    topFive.length > 0
-      ? topFive
-      : ranked.slice(0, 5);
-  const shown = subcategory && !visible.includes(subcategory) ? [subcategory, ...visible].slice(0, 6) : visible;
+  const visible = topFive.length > 0 ? topFive : ranked.slice(0, 5);
+  const shown =
+    subcategory && !visible.includes(subcategory) ? [subcategory, ...visible].slice(0, 6) : visible;
   const rest = allSubs.filter((s) => !shown.includes(s));
 
   return (

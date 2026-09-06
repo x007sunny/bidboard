@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { CATEGORIES } from "@/lib/categories";
 import { formatAUD, timeAgo } from "@/lib/ranking";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { ensureTaxonomy } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -19,23 +19,32 @@ function faviconFor(url: string) {
 }
 
 export default async function CategoriesPage() {
-  const listings = await prisma.listing.findMany({
-    orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
-  });
+  const [listings, taxonomy] = await Promise.all([
+    prisma.listing.findMany({
+      orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
+    }),
+    ensureTaxonomy(),
+  ]);
 
   const launchDate = new Date("2026-08-23T00:00:00Z");
   const hoursSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60));
   const totalVisitors = 1327 + Math.floor(hoursSinceLaunch * 12);
   const onlineNow = 3 + Math.floor(Math.random() * 8);
 
-  const groups = CATEGORIES.map((name) => {
-    const items = listings.filter((l) => l.category === name);
-    const last = items.reduce<Date | null>((acc, l) => {
-      if (!acc || l.lastBidAt > acc) return l.lastBidAt;
-      return acc;
-    }, null);
-    return { name, items, last };
-  }).filter((g) => g.items.length > 0);
+  const names = [
+    ...taxonomy.map((t) => t.name),
+    ...listings.map((l) => l.category).filter((n) => !taxonomy.some((t) => t.name === n)),
+  ];
+  const groups = names
+    .map((name) => {
+      const items = listings.filter((l) => l.category === name);
+      const last = items.reduce<Date | null>((acc, l) => {
+        if (!acc || l.lastBidAt > acc) return l.lastBidAt;
+        return acc;
+      }, null);
+      return { name, items, last };
+    })
+    .filter((g) => g.items.length > 0);
 
   const mostActive = [...groups]
     .sort((a, b) => b.items.length - a.items.length)

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { parseSocialUrl, socialCardAssets } from "@/lib/social";
 import { parseStates, validateTaxonomy } from "@/lib/categories";
+import { taxonomyMap } from "@/lib/taxonomy";
 
 export const runtime = "nodejs";
 
@@ -81,11 +82,15 @@ export async function POST(req: NextRequest) {
   let url = meta.url || "";
 
   // Confirmed values from the check-your-listing step. Do not re-classify over them.
-  const taxonomy = validateTaxonomy({
-    category: meta.category || "Other",
-    subcategory: meta.subcategory || "Other",
-    states: parseStates(meta.states),
-  });
+  const map = await taxonomyMap();
+  const taxonomy = validateTaxonomy(
+    {
+      category: meta.category || "Other",
+      subcategory: meta.subcategory || "Other",
+      states: parseStates(meta.states),
+    },
+    map
+  );
   const category = taxonomy.ok ? taxonomy.category : meta.category || "Other";
   const subcategory = taxonomy.ok ? taxonomy.subcategory : meta.subcategory || null;
   const states = taxonomy.ok ? taxonomy.states : parseStates(meta.states);

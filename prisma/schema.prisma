@@ -62,3 +62,15 @@ model Visitor {
 
   @@index([lastSeenAt])
 }
+
+// Admin-managed categories + subcategories for filters and the confirmation page
+model Category {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  subcategories String[] @default([])
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sortOrder])
+}

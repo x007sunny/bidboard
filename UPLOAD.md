@@ -1,8 +1,6 @@
 # Bidboard — upload this zip
 
-This zip is the **full app**: categories + subcategory/state filters + auto-detect + **check-your-listing before payment**.
-
-Do **not** use `bidboard-fixed.zip`. That older zip dropped categories.
+This zip is the **full app**: categories + confirmation before pay + admin category manager.
 
 Do these in order. You do not need a terminal.
 
@@ -11,12 +9,12 @@ Do these in order. You do not need a terminal.
 1. Open [console.neon.tech](https://console.neon.tech)
 2. Open your Bidboard project
 3. SQL Editor
-4. Paste everything in `NEON-subcategory-states.sql`
-5. Run
 
-Safe to run even if you already ran it (`IF NOT EXISTS`). Existing listings stay on the board.
+If you have **not** already added subcategory/states, run `NEON-subcategory-states.sql`.
 
-You do **not** need any other SQL.
+Then run **`NEON-categories.sql`** (this is new). Safe to run more than once.
+
+Default categories are filled in automatically the first time the site loads after this.
 
 ## 2. GitHub
 
@@ -27,11 +25,11 @@ You do **not** need any other SQL.
 
 Include:
 
-- `src/` (all of it — including `src/app/check/` and `src/app/api/preview/`)
+- `src/` (all of it)
 - `prisma/`
 - `NEON-subcategory-states.sql`
-- `package.json` (do not bump unrelated packages)
-- `public/favicon.png` if it is in the zip
+- `NEON-categories.sql`
+- `package.json`
 
 Do **not** upload `node_modules` or `.next`.
 
@@ -41,18 +39,6 @@ Wait until the deployment is Ready, then hard-refresh bidboard.com.au.
 
 ## What you should see
 
-Homepage form is only:
-
-- website URL
-- **Get on the board**
-
-No category dropdown on the homepage.
-
-After submit: **Check your listing** (name, category, subcategory, location). Then Stripe.
-
-Existing listings stay visible. They get a subcategory / states when:
-
-- someone re-bids, **or**
-- you open Admin → Refresh title & description from website
-
-New listings are classified from the website. The bidder confirms or edits before paying. A listing is only created after Stripe payment succeeds.
+- Category pills sit just under the header
+- Check your listing: description field, shorter scrape warning, no extra “something wrong” line
+- Admin → **Categories**: add, edit, reorder, delete

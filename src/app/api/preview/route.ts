@@ -6,6 +6,7 @@ import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata, type WebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { classifyListing } from "@/lib/classifyListing";
 import type { ListingPreview } from "@/lib/listingPreview";
+import { ensureTaxonomy } from "@/lib/taxonomy";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
@@ -45,10 +46,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existing = await prisma.listing.findUnique({
-      where: { uniqueKey },
-      select: { bidCents: true, title: true, category: true, subcategory: true, states: true },
-    });
+    const [existing, taxonomy] = await Promise.all([
+      prisma.listing.findUnique({
+        where: { uniqueKey },
+        select: {
+          bidCents: true,
+          title: true,
+          description: true,
+          category: true,
+          subcategory: true,
+          states: true,
+        },
+      }),
+      ensureTaxonomy(),
+    ]);
 
     let fetched: WebsiteMetadata = {
       title: domainTitle,
@@ -64,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     const title = fetched.title || domainTitle;
-    const description = fetched.description || "";
+    const description = fetched.description || existing?.description || "";
     const logoUrl = fetched.imageUrl || "";
     const storedUrl = fetched.canonicalUrl || body.url.trim();
 
@@ -107,6 +118,7 @@ export async function POST(req: NextRequest) {
       scraped: !!fetched.scraped,
       existing: existing ? { bidCents: existing.bidCents } : null,
       amountCents: body.amountCents,
+      taxonomy: taxonomy.map((t) => ({ name: t.name, subcategories: t.subcategories })),
     };
 
     return NextResponse.json(preview);

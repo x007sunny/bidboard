@@ -14,6 +14,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { prisma } from "@/lib/prisma";
 import { getVisitorStats } from "@/lib/visitors";
+import { ensureTaxonomy } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -31,31 +32,39 @@ export default async function HomePage({
 
   const filter = { category, subcategory: subcategory || undefined, state: state || undefined };
 
-  const [{ listings, total }, topBid, bidList, categoryCounts, subcategoryCounts, totalRevenue, visitorStats] =
-    await Promise.all([
-      getLeaderboard(50, page, filter),
-      getTopBidCents(),
-      getBidLadder(),
-      getCategoryCounts(),
-      getSubcategoryCounts(category, state || undefined),
-      prisma.payment.aggregate({
-        where: { status: "completed" },
-        _sum: { amountCents: true },
-      }),
-      getVisitorStats(),
-    ]);
+  const [
+    { listings, total },
+    topBid,
+    bidList,
+    categoryCounts,
+    subcategoryCounts,
+    totalRevenue,
+    visitorStats,
+    taxonomy,
+  ] = await Promise.all([
+    getLeaderboard(50, page, filter),
+    getTopBidCents(),
+    getBidLadder(),
+    getCategoryCounts(),
+    getSubcategoryCounts(category, state || undefined),
+    prisma.payment.aggregate({
+      where: { status: "completed" },
+      _sum: { amountCents: true },
+    }),
+    getVisitorStats(),
+    ensureTaxonomy(),
+  ]);
 
   const revenueCents = totalRevenue._sum.amountCents || 0;
   const launchDate = new Date("2026-08-23T00:00:00Z");
   const hoursSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60));
   const { totalVisitors, onlineNow } = visitorStats;
   const start = (page - 1) * 50;
+  const currentSubs = taxonomy.find((t) => t.name === category)?.subcategories || [];
 
   return (
     <main>
       <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
-
-      <ClaimBox topBidCents={topBid} listings={bidList} />
 
       <BoardFilters
         category={category}
@@ -63,7 +72,11 @@ export default async function HomePage({
         state={state}
         categoryCounts={categoryCounts}
         subcategoryCounts={subcategoryCounts}
+        categoryNames={taxonomy.map((t) => t.name)}
+        subcategories={currentSubs}
       />
+
+      <ClaimBox topBidCents={topBid} listings={bidList} />
 
       <ActivityTicker />
 
@@ -82,7 +95,7 @@ export default async function HomePage({
                   {rank === 3 && listings.length > 3 && (
                     <div className="my-3 flex items-center gap-3">
                       <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-400 uppercase dark:border-neutral-700 dark:bg-neutral-900">
+                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900">
                         Top 3
                       </span>
                       <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />

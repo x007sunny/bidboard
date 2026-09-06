@@ -1,5 +1,10 @@
 export const PREVIEW_STORAGE_KEY = "bidboard-preview";
 
+export type TaxonomyOption = {
+  name: string;
+  subcategories: string[];
+};
+
 export type ListingPreview = {
   url: string;
   uniqueKey: string;
@@ -17,4 +22,5 @@ export type ListingPreview = {
   scraped: boolean;
   existing: { bidCents: number } | null;
   amountCents: number;
+  taxonomy: TaxonomyOption[];
 };

@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/adminAuth";
 import { AdminListingForm } from "@/components/AdminListingForm";
 import { DeleteListingButton } from "@/components/DeleteListingButton";
 import { refreshListingMetadata } from "../actions";
+import { ensureTaxonomy } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function AdminEditPage({
 
   const listing = await prisma.listing.findUnique({ where: { id } });
   if (!listing) notFound();
+  const taxonomy = await ensureTaxonomy();
 
   return (
     <main className="mx-auto max-w-lg pt-4">
@@ -47,7 +49,7 @@ export default async function AdminEditPage({
           Refresh title & description from website
         </button>
       </form>
-      <AdminListingForm listing={listing} error={error} />
+      <AdminListingForm listing={listing} error={error} taxonomy={taxonomy} />
       <div className="mt-8 border-t border-neutral-200 pt-6 dark:border-neutral-800">
         <DeleteListingButton id={listing.id} label="Delete this listing" />
       </div>

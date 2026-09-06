@@ -32,6 +32,7 @@ function locationFromStates(states: string[]): { national: boolean; selected: st
 export function ConfirmListingForm() {
   const [preview, setPreview] = useState<ListingPreview | null | undefined>(undefined);
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [national, setNational] = useState(false);
@@ -49,6 +50,7 @@ export function ConfirmListingForm() {
       const data = JSON.parse(raw) as ListingPreview;
       setPreview(data);
       setTitle(data.title || "");
+      setDescription(data.description || "");
       setCategory(data.confident.category ? data.category : "");
       setSubcategory(data.confident.subcategory && data.subcategory ? data.subcategory : "");
       const loc = locationFromStates(data.states || []);
@@ -59,11 +61,24 @@ export function ConfirmListingForm() {
     }
   }, []);
 
-  const subs = useMemo(() => (category ? subcategoriesFor(category) : []), [category]);
+  const categoryNames = useMemo(() => {
+    if (preview?.taxonomy?.length) return preview.taxonomy.map((t) => t.name);
+    return [...CATEGORIES];
+  }, [preview]);
+
+  const taxonomyMap = useMemo(() => {
+    if (!preview?.taxonomy?.length) return undefined;
+    return Object.fromEntries(preview.taxonomy.map((t) => [t.name, t.subcategories]));
+  }, [preview]);
+
+  const subs = useMemo(
+    () => (category ? subcategoriesFor(category, taxonomyMap) : []),
+    [category, taxonomyMap]
+  );
 
   function onCategoryChange(next: string) {
     setCategory(next);
-    const nextSubs = subcategoriesFor(next);
+    const nextSubs = subcategoriesFor(next, taxonomyMap);
     if (!nextSubs.includes(subcategory)) setSubcategory("");
   }
 
@@ -122,7 +137,7 @@ export function ConfirmListingForm() {
         body: JSON.stringify({
           url: preview.url,
           title: title.trim(),
-          description: preview.description || "",
+          description: description.trim().slice(0, 500),
           category,
           subcategory,
           states: national ? [AU_NATIONAL] : selectedStates,
@@ -191,8 +206,7 @@ export function ConfirmListingForm() {
 
       {!preview.scraped && (
         <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
-          We couldn't automatically read this website. You can still continue by checking and
-          completing the information below.
+          We couldn't automatically read this website. You can edit the details before continuing.
         </p>
       )}
 
@@ -231,6 +245,19 @@ export function ConfirmListingForm() {
       </label>
 
       <label className="mt-4 block text-sm">
+        <span className="mb-1 block text-neutral-500">Description</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+          rows={3}
+          maxLength={500}
+          placeholder="Short description of the business"
+          className={inputClass}
+        />
+        <span className="mt-1 block text-[11px] text-neutral-400">{description.length}/500</span>
+      </label>
+
+      <label className="mt-4 block text-sm">
         <span className="mb-1 block text-neutral-500">Category</span>
         {showCategoryWarn && (
           <p className="mb-1.5 text-xs text-amber-700 dark:text-amber-300">
@@ -243,7 +270,7 @@ export function ConfirmListingForm() {
           className={inputClass}
         >
           <option value="">Select category</option>
-          {CATEGORIES.map((c) => (
+          {categoryNames.map((c) => (
             <option key={c} value={c}>
               {c}
             </option>
@@ -300,10 +327,6 @@ export function ConfirmListingForm() {
         </p>
       </fieldset>
 
-      <p className="mt-5 text-sm text-neutral-500">
-        Something wrong? You can edit the details before continuing.
-      </p>
-
       {bidTooLow && preview.existing && (
         <p className="mt-3 text-sm text-red-600">
           You must bid at least $1 more than your current bid of $
@@ -315,7 +338,7 @@ export function ConfirmListingForm() {
       <button
         type="submit"
         disabled={loading || bidTooLow}
-        className="mt-4 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+        className="mt-5 w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
       >
         {loading ? "Starting payment…" : "Continue to payment →"}
       </button>

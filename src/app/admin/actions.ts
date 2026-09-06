@@ -9,6 +9,7 @@ import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { classifyListing } from "@/lib/classifyListing";
 import { parseStates, isKnownSubcategory } from "@/lib/categories";
+import { ensureTaxonomy, normalizeSubcategories, taxonomyMap } from "@/lib/taxonomy";
 
 export async function loginAdmin(formData: FormData) {
   const password = String(formData.get("password") || "");
@@ -38,6 +39,13 @@ function dollarsToCents(raw: string): number {
   return Math.round(n * 100);
 }
 
+function revalidateBoard() {
+  revalidatePath("/");
+  revalidatePath("/categories");
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/categories");
+}
+
 export async function saveListing(formData: FormData) {
   if (!(await isAdmin())) redirect("/admin");
 
@@ -47,9 +55,13 @@ export async function saveListing(formData: FormData) {
   const description = String(formData.get("description") || "");
   const category = String(formData.get("category") || "Other");
   const subcategoryRaw = String(formData.get("subcategory") || "").trim();
-  const subcategory = isKnownSubcategory(category, subcategoryRaw) ? subcategoryRaw : null;
+  const map = await taxonomyMap();
+  const subcategory = isKnownSubcategory(category, subcategoryRaw, map) ? subcategoryRaw : null;
   const states = parseStates(
-    formData.getAll("states").map((v) => String(v)).join(",")
+    formData
+      .getAll("states")
+      .map((v) => String(v))
+      .join(",")
   );
   const logoUrl = String(formData.get("logoUrl") || "").trim() || null;
   const clicks = Math.max(0, parseInt(String(formData.get("clicks") || "0"), 10) || 0);
@@ -99,8 +111,7 @@ export async function saveListing(formData: FormData) {
     redirect(id ? `/admin/${id}?error=2` : "/admin/new?error=2");
   }
 
-  revalidatePath("/");
-  revalidatePath("/admin/dashboard");
+  revalidateBoard();
   redirect("/admin/dashboard");
 }
 
@@ -115,8 +126,7 @@ export async function deleteListing(formData: FormData) {
   });
   await prisma.listing.delete({ where: { id } });
 
-  revalidatePath("/");
-  revalidatePath("/admin/dashboard");
+  revalidateBoard();
   redirect("/admin/dashboard");
 }
 
@@ -153,8 +163,99 @@ export async function refreshListingMetadata(formData: FormData) {
     redirect(`/admin/${id}?error=3`);
   }
 
-  revalidatePath("/");
-  revalidatePath("/admin/dashboard");
+  revalidateBoard();
   revalidatePath(`/admin/${id}`);
   redirect(`/admin/${id}?ok=1`);
+}
+
+export async function createCategory(formData: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const name = String(formData.get("name") || "").trim();
+  const subs = normalizeSubcategories(String(formData.get("subcategories") || ""));
+  if (!name) redirect("/admin/categories?error=name");
+
+  try {
+    const rows = await ensureTaxonomy();
+    const maxSort = rows.reduce((m, r) => Math.max(m, r.sortOrder), -1);
+    await prisma.category.create({
+      data: { name, subcategories: subs, sortOrder: maxSort + 1 },
+    });
+  } catch {
+    redirect("/admin/categories?error=exists");
+  }
+
+  revalidateBoard();
+  redirect("/admin/categories?ok=created");
+}
+
+export async function updateCategory(formData: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  const subs = normalizeSubcategories(String(formData.get("subcategories") || ""));
+  if (!id || !name) redirect("/admin/categories?error=name");
+
+  const current = await prisma.category.findUnique({ where: { id } });
+  if (!current) redirect("/admin/categories");
+
+  if (current.name === "Other" && name !== "Other") {
+    redirect("/admin/categories?error=other");
+  }
+
+  try {
+    await prisma.category.update({
+      where: { id },
+      data: { name, subcategories: subs },
+    });
+    if (current.name !== name) {
+      await prisma.listing.updateMany({
+        where: { category: current.name },
+        data: { category: name },
+      });
+    }
+  } catch {
+    redirect("/admin/categories?error=exists");
+  }
+
+  revalidateBoard();
+  redirect("/admin/categories?ok=saved");
+}
+
+export async function deleteCategory(formData: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = String(formData.get("id") || "");
+  if (!id) redirect("/admin/categories");
+
+  const current = await prisma.category.findUnique({ where: { id } });
+  if (!current) redirect("/admin/categories");
+  if (current.name === "Other") redirect("/admin/categories?error=other");
+
+  const used = await prisma.listing.count({ where: { category: current.name } });
+  if (used > 0) redirect("/admin/categories?error=inuse");
+
+  await prisma.category.delete({ where: { id } });
+  revalidateBoard();
+  redirect("/admin/categories?ok=deleted");
+}
+
+export async function moveCategory(formData: FormData) {
+  if (!(await isAdmin())) redirect("/admin");
+  const id = String(formData.get("id") || "");
+  const direction = String(formData.get("direction") || "");
+  const rows = await prisma.category.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+  });
+  const idx = rows.findIndex((r) => r.id === id);
+  const swapWith = direction === "up" ? idx - 1 : idx + 1;
+  if (idx < 0 || swapWith < 0 || swapWith >= rows.length) {
+    redirect("/admin/categories");
+  }
+  const a = rows[idx];
+  const b = rows[swapWith];
+  await prisma.$transaction([
+    prisma.category.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
+    prisma.category.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } }),
+  ]);
+  revalidateBoard();
+  redirect("/admin/categories");
 }

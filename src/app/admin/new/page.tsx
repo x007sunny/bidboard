@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/adminAuth";
 import { AdminListingForm } from "@/components/AdminListingForm";
+import { ensureTaxonomy } from "@/lib/taxonomy";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export default async function AdminNewPage({
 }) {
   await requireAdmin();
   const { error } = await searchParams;
+  const taxonomy = await ensureTaxonomy();
 
   return (
     <main className="mx-auto max-w-lg pt-4">
@@ -18,7 +20,7 @@ export default async function AdminNewPage({
         ← All listings
       </Link>
       <h1 className="mb-6 mt-3 text-2xl font-bold tracking-tight">Add listing</h1>
-      <AdminListingForm error={error} />
+      <AdminListingForm error={error} taxonomy={taxonomy} />
     </main>
   );
 }
