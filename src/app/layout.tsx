@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { VisitBeacon } from "@/components/VisitBeacon";
 
@@ -33,6 +34,7 @@ export default function RootLayout({
         <div className="mx-auto max-w-5xl px-4 pt-0 pb-6 sm:px-6">
           {children}
         </div>
+        <Analytics />
       </body>
     </html>
   );
