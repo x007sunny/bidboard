@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { socialCardAssets } from "@/lib/social";
+import { clientIpFromHeaders, tooManyRequests } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
 
 export async function GET(req: NextRequest) {
+  if (tooManyRequests(`social-meta:${clientIpFromHeaders(req.headers)}`, 20, 60_000)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const url = (req.nextUrl.searchParams.get("url") || "").trim();
   if (!url || url.length > 500) {
     return NextResponse.json({ error: "Missing url" }, { status: 400 });

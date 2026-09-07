@@ -3,8 +3,6 @@ import { Prisma } from "@prisma/client";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
-import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
-import { parseSocialUrl, socialCardAssets } from "@/lib/social";
 import { parseStates, validateTaxonomy } from "@/lib/categories";
 import { taxonomyMap } from "@/lib/taxonomy";
 
@@ -59,8 +57,9 @@ export async function POST(req: NextRequest) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Invalid signature";
+    console.error("Webhook signature verification failed:", message);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -76,12 +75,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  let title = meta.title || "";
-  let description = meta.description || "";
-  let logoUrl = meta.logoUrl || "";
-  let url = meta.url || "";
+  // Stripe metadata from /api/checkout is the source of truth.
+  // Do not re-scrape or re-classify the customer's website here.
+  const title = (meta.title || "").trim();
+  const description = (meta.description || "").trim();
+  const logoUrl = (meta.logoUrl || "").trim();
+  const url = (meta.url || "").trim();
 
-  // Confirmed values from the check-your-listing step. Do not re-classify over them.
   const map = await taxonomyMap();
   const taxonomy = validateTaxonomy(
     {
@@ -91,29 +91,9 @@ export async function POST(req: NextRequest) {
     },
     map
   );
-  const category = taxonomy.ok ? taxonomy.category : meta.category || "Other";
-  const subcategory = taxonomy.ok ? taxonomy.subcategory : meta.subcategory || null;
-  const states = taxonomy.ok ? taxonomy.states : parseStates(meta.states);
-
-  try {
-    const social = parseSocialUrl(meta.url || meta.uniqueKey);
-    if (social) {
-      const fresh = await socialCardAssets(meta.url || meta.uniqueKey);
-      if (!logoUrl && fresh?.imageDataUrl) logoUrl = fresh.imageDataUrl;
-      else if (!logoUrl && fresh?.imageUrl) logoUrl = fresh.imageUrl;
-      if (!title && fresh?.title) title = fresh.title;
-      if (!description && fresh?.description) description = fresh.description;
-      if (!url && fresh?.canonicalUrl) url = fresh.canonicalUrl;
-    } else {
-      const fresh = await fetchWebsiteMetadata(meta.url || meta.uniqueKey);
-      if (!logoUrl && fresh.imageUrl) logoUrl = fresh.imageUrl;
-      if (!title && fresh.title) title = fresh.title;
-      if (!description && fresh.description) description = fresh.description;
-      if (!url && fresh.canonicalUrl) url = fresh.canonicalUrl;
-    }
-  } catch {
-    // Stripe metadata is the fallback
-  }
+  const category = taxonomy.ok ? taxonomy.category : "Other";
+  const subcategory = taxonomy.ok ? taxonomy.subcategory : "Other";
+  const states = taxonomy.ok ? taxonomy.states : [];
 
   try {
     await prisma.$transaction(

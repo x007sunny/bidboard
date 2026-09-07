@@ -4,6 +4,7 @@ import { formatAUD, timeAgo } from "@/lib/ranking";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ensureTaxonomy } from "@/lib/taxonomy";
+import { getVisitorStats } from "@/lib/visitors";
 
 export const dynamic = "force-dynamic";
 
@@ -19,17 +20,15 @@ function faviconFor(url: string) {
 }
 
 export default async function CategoriesPage() {
-  const [listings, taxonomy] = await Promise.all([
+  const [listings, taxonomy, visitorStats] = await Promise.all([
     prisma.listing.findMany({
       orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
     }),
     ensureTaxonomy(),
+    getVisitorStats(),
   ]);
 
-  const launchDate = new Date("2026-08-23T00:00:00Z");
-  const hoursSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60));
-  const totalVisitors = 1327 + Math.floor(hoursSinceLaunch * 12);
-  const onlineNow = 3 + Math.floor(Math.random() * 8);
+  const { totalVisitors, onlineNow } = visitorStats;
 
   const names = [
     ...taxonomy.map((t) => t.name),

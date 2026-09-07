@@ -4,7 +4,6 @@ import {
   getCategoryCounts,
   getLeaderboard,
   getSubcategoryCounts,
-  getTopBidCents,
 } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
 import { ActivityTicker } from "@/components/ActivityTicker";
@@ -12,9 +11,9 @@ import { ClaimBox } from "@/components/ClaimBox";
 import { BoardFilters } from "@/components/BoardFilters";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { prisma } from "@/lib/prisma";
 import { getVisitorStats } from "@/lib/visitors";
 import { ensureTaxonomy } from "@/lib/taxonomy";
+import { logTiming, timeit } from "@/lib/timing";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -32,35 +31,39 @@ export default async function HomePage({
 
   const filter = { category, subcategory: subcategory || undefined, state: state || undefined };
 
+  const timings: Record<string, number> = {};
+  const t0 = Date.now();
+
   const [
     { listings, total },
-    topBid,
     bidList,
     categoryCounts,
     subcategoryCounts,
-    totalRevenue,
     visitorStats,
     taxonomy,
   ] = await Promise.all([
-    getLeaderboard(50, page, filter),
-    getTopBidCents(),
-    getBidLadder(),
-    getCategoryCounts(),
-    getSubcategoryCounts(category, state || undefined),
-    prisma.payment.aggregate({
-      where: { status: "completed" },
-      _sum: { amountCents: true },
-    }),
-    getVisitorStats(),
-    ensureTaxonomy(),
+    timeit("leaderboard", () => getLeaderboard(50, page, filter), timings),
+    timeit("bidLadder", () => getBidLadder(), timings),
+    timeit("categoryCounts", () => getCategoryCounts(), timings),
+    timeit("subcategoryCounts", () => getSubcategoryCounts(category, state || undefined), timings),
+    timeit("visitors", () => getVisitorStats(), timings),
+    timeit("taxonomy", () => ensureTaxonomy(), timings),
   ]);
 
-  const revenueCents = totalRevenue._sum.amountCents || 0;
-  const launchDate = new Date("2026-08-23T00:00:00Z");
-  const hoursSinceLaunch = Math.floor((Date.now() - launchDate.getTime()) / (1000 * 60 * 60));
+  const parallelMs = Date.now() - t0;
+  const topBid = bidList[0]?.bidCents ?? 0;
   const { totalVisitors, onlineNow } = visitorStats;
   const start = (page - 1) * 50;
   const currentSubs = taxonomy.find((t) => t.name === category)?.subcategories || [];
+
+  logTiming({
+    filter,
+    listingCount: listings.length,
+    bidLadderCount: bidList.length,
+    parallelMs,
+    timings,
+    wallMs: Date.now() - t0,
+  });
 
   return (
     <main>
@@ -132,7 +135,7 @@ export default async function HomePage({
         )}
       </section>
 
-      <SiteFooter revenueCents={revenueCents} hoursSinceLaunch={hoursSinceLaunch} />
+      <SiteFooter />
     </main>
   );
 }

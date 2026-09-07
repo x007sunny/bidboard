@@ -8,4 +8,3 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export const MIN_BID_CENTS = 500;
 export const MAX_BID_CENTS = 999_999_00;
-export const TOP_OUTBID_EXTRA_CENTS = 500;

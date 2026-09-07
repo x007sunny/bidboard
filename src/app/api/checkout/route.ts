@@ -6,6 +6,7 @@ import { normalizeUrlOrHandle } from "@/lib/ranking";
 import { fetchWebsiteMetadata, type WebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { formatStatesMeta, validateTaxonomy } from "@/lib/categories";
 import { taxonomyMap } from "@/lib/taxonomy";
+import { clientIpFromHeaders, tooManyRequests } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
@@ -13,7 +14,7 @@ const bodySchema = z.object({
   description: z.string().max(500).optional(),
   category: z.string().min(1).max(100),
   subcategory: z.string().min(1).max(80),
-  states: z.array(z.string()).min(1),
+  states: z.array(z.string().min(1).max(8)).min(1).max(9),
   amountCents: z.number().int().min(MIN_BID_CENTS).max(MAX_BID_CENTS),
 });
 
@@ -21,8 +22,22 @@ function stripeSafe(value: string, max = 490): string {
   return value.replace(/[\u0000-\u001f]/g, "").slice(0, max);
 }
 
+function tooLarge(req: NextRequest) {
+  const len = Number(req.headers.get("content-length") || 0);
+  return Number.isFinite(len) && len > 50_000;
+}
+
 export async function POST(req: NextRequest) {
   try {
+    if (tooLarge(req)) {
+      return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    }
+
+    const ip = clientIpFromHeaders(req.headers);
+    if (tooManyRequests(`checkout:${ip}`, 10, 60_000)) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+    }
+
     const json = await req.json();
     const body = bodySchema.parse(json);
 
@@ -92,9 +107,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const confirmedTitle = body.title.trim();
+    const confirmedDescription = (body.description || "").trim();
+
     let fetched: WebsiteMetadata = {
-      title: domainTitle,
-      description: "",
+      title: confirmedTitle || domainTitle,
+      description: confirmedDescription,
       imageUrl: null,
       canonicalUrl: body.url.trim(),
     };
@@ -104,8 +122,8 @@ export async function POST(req: NextRequest) {
       // Listing submission must never fail because metadata fetch failed.
     }
 
-    const title = body.title.trim() || fetched.title || domainTitle;
-    const description = body.description?.trim() || fetched.description || "";
+    const title = confirmedTitle || fetched.title || domainTitle;
+    const description = confirmedDescription || fetched.description || "";
     const logoUrl = fetched.imageUrl || "";
     const storedUrl = fetched.canonicalUrl || body.url.trim();
 
@@ -162,14 +180,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Checkout error:", err);
-    if (err.name === "ZodError") {
+    if (err && typeof err === "object" && "name" in err && err.name === "ZodError") {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

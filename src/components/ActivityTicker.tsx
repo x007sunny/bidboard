@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatAUD, timeAgo } from "@/lib/ranking";
+import { logTiming, timeit } from "@/lib/timing";
 import Link from "next/link";
 
 type TickerEvent = {
@@ -19,22 +20,42 @@ function shortTitle(title: string) {
 }
 
 export async function ActivityTicker() {
-  const ranked = await prisma.listing.findMany({
-    orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
-    select: { id: true, title: true, bidCents: true, lastBidAt: true },
+  const timings: Record<string, number> = {};
+  const t0 = Date.now();
+  const [ranked, payments] = await Promise.all([
+    timeit(
+      "tickerListings",
+      () =>
+        prisma.listing.findMany({
+          orderBy: [{ bidCents: "desc" }, { lastBidAt: "asc" }],
+          select: { id: true, title: true, bidCents: true, lastBidAt: true },
+        }),
+      timings
+    ),
+    timeit(
+      "tickerPayments",
+      () =>
+        prisma.payment.findMany({
+          where: { status: "completed" },
+          orderBy: { completedAt: "desc" },
+          take: 10,
+          include: {
+            listing: {
+              select: { id: true, title: true, bidCents: true, lastBidAt: true },
+            },
+          },
+        }),
+      timings
+    ),
+  ]);
+  logTiming({
+    source: "activityTicker",
+    rankedCount: ranked.length,
+    paymentCount: payments.length,
+    parallelMs: Date.now() - t0,
+    timings,
   });
   const rankMap = new Map(ranked.map((l, i) => [l.id, i + 1]));
-
-  const payments = await prisma.payment.findMany({
-    where: { status: "completed" },
-    orderBy: { completedAt: "desc" },
-    take: 10,
-    include: {
-      listing: {
-        select: { id: true, title: true, bidCents: true, lastBidAt: true },
-      },
-    },
-  });
 
   const events: TickerEvent[] = [];
   const seenDrop = new Set<string>();

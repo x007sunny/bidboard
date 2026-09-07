@@ -1,10 +1,15 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { getVisitorStats } from "@/lib/visitors";
 
-export default function RulesPage() {
+export const dynamic = "force-dynamic";
+
+export default async function RulesPage() {
+  const { onlineNow, totalVisitors } = await getVisitorStats();
+
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
       <h1 className="mb-6 text-2xl font-bold tracking-tight">Rules</h1>
 
       <div className="space-y-6 text-sm text-neutral-700 leading-relaxed max-w-lg dark:text-neutral-300">

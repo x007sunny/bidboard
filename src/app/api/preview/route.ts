@@ -7,6 +7,7 @@ import { fetchWebsiteMetadata, type WebsiteMetadata } from "@/lib/fetchWebsiteMe
 import { classifyListing } from "@/lib/classifyListing";
 import type { ListingPreview } from "@/lib/listingPreview";
 import { ensureTaxonomy } from "@/lib/taxonomy";
+import { clientIpFromHeaders, tooManyRequests } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
   url: z.string().min(1).max(500),
@@ -15,6 +16,14 @@ const bodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const len = Number(req.headers.get("content-length") || 0);
+    if (Number.isFinite(len) && len > 50_000) {
+      return NextResponse.json({ error: "Request too large" }, { status: 413 });
+    }
+    if (tooManyRequests(`preview:${clientIpFromHeaders(req.headers)}`, 20, 60_000)) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, { status: 429 });
+    }
+
     const json = await req.json();
     const body = bodySchema.parse(json);
 
@@ -124,12 +133,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(preview);
   } catch (err: any) {
     console.error("Preview error:", err);
-    if (err.name === "ZodError") {
+    if (err && typeof err === "object" && "name" in err && err.name === "ZodError") {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
-    return NextResponse.json(
-      { error: err.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

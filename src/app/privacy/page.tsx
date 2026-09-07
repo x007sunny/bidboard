@@ -1,10 +1,15 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { getVisitorStats } from "@/lib/visitors";
 
-export default function PrivacyPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PrivacyPage() {
+  const { onlineNow, totalVisitors } = await getVisitorStats();
+
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Privacy Policy</h1>
       <p className="mb-8 text-sm text-neutral-500">
         Effective 23 August 2026. Last updated 30 August 2026.

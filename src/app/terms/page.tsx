@@ -1,10 +1,15 @@
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { getVisitorStats } from "@/lib/visitors";
 
-export default function TermsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TermsPage() {
+  const { onlineNow, totalVisitors } = await getVisitorStats();
+
   return (
     <main>
-      <SiteHeader />
+      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Terms of Service</h1>
       <p className="mb-8 text-sm text-neutral-500">
         Effective 23 August 2026. Last updated 30 August 2026.
@@ -52,8 +57,8 @@ export default function TermsPage() {
           <p>
             Payments are processed by Stripe. Amounts are in AUD. Applicable taxes
             (including GST, if any) may be added at checkout. Rank is assigned after
-            Stripe confirms payment. Minimum bids, #1 increments, and how raises work
-            are described in the Rules and shown before you pay.
+            Stripe confirms payment. Minimum bids and how raises work are described
+            in the Rules and shown before you pay.
           </p>
         </section>
 

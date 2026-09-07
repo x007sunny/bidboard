@@ -11,9 +11,14 @@ const BLOCKED_HOSTS = new Set([
   "metadata.google.com",
 ]);
 
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+export const DEFAULT_MAX_REDIRECTS = 5;
+
 export function isBlockedHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.+$/, "");
   if (BLOCKED_HOSTS.has(host)) return true;
+  if (/^127\./.test(host)) return true;
+  if (/^\d+$/.test(host)) return true;
   if (
     host.endsWith(".local") ||
     host.endsWith(".internal") ||
@@ -60,9 +65,6 @@ export async function assertPublicHttpUrl(url: URL): Promise<void> {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Only HTTP and HTTPS URLs are allowed.");
   }
-  if (url.port && !["", "80", "443", "8080", "8443"].includes(url.port)) {
-    // unusual ports are fine for public sites; still resolve + IP-check below
-  }
   const host = url.hostname.replace(/\.+$/, "");
   if (!host) throw new Error("That website cannot be listed.");
   if (isBlockedHost(host)) throw new Error("That website cannot be listed.");
@@ -79,33 +81,68 @@ export async function assertPublicHttpUrl(url: URL): Promise<void> {
   }
 }
 
+/** Resolve a redirect Location against the current URL and validate it before any request. */
+export async function assertPublicRedirect(current: URL, location: string): Promise<URL> {
+  let next: URL;
+  try {
+    next = new URL(location, current);
+  } catch {
+    throw new Error("That website cannot be listed.");
+  }
+  await assertPublicHttpUrl(next);
+  return next;
+}
+
 type SafeFetchInit = RequestInit & {
   timeoutMs?: number;
   maxRedirects?: number;
 };
 
-export async function safeFetch(input: string | URL, init: SafeFetchInit = {}): Promise<Response> {
+type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
+
+export async function safeFetch(
+  input: string | URL,
+  init: SafeFetchInit = {},
+  fetchImpl: FetchLike = fetch
+): Promise<Response> {
   const timeoutMs = init.timeoutMs ?? 15000;
+  const maxRedirects = init.maxRedirects ?? DEFAULT_MAX_REDIRECTS;
   const { timeoutMs: _t, maxRedirects: _m, redirect: _r, signal: _s, ...rest } = init;
 
-  const start = typeof input === "string" ? new URL(input) : new URL(input.toString());
-  await assertPublicHttpUrl(start);
+  let current = typeof input === "string" ? new URL(input) : new URL(input.toString());
+  await assertPublicHttpUrl(current);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(start.toString(), {
-      ...rest,
-      redirect: "follow",
-      signal: controller.signal,
-    });
-    try {
-      const finalUrl = new URL(res.url || start.toString());
-      await assertPublicHttpUrl(finalUrl);
-    } catch {
-      throw new Error("That website cannot be listed.");
+    for (let hops = 0; hops <= maxRedirects; hops++) {
+      const res = await fetchImpl(current.toString(), {
+        ...rest,
+        redirect: "manual",
+        signal: controller.signal,
+      });
+
+      if (REDIRECT_STATUSES.has(res.status)) {
+        const location = res.headers.get("location");
+        if (res.body) {
+          try {
+            await res.body.cancel();
+          } catch {
+            // ignore
+          }
+        }
+        if (!location) throw new Error("That website cannot be listed.");
+        if (hops === maxRedirects) {
+          throw new Error("That website cannot be listed.");
+        }
+        // Validate the next hop BEFORE requesting it.
+        current = await assertPublicRedirect(current, location);
+        continue;
+      }
+
+      return res;
     }
-    return res;
+    throw new Error("That website cannot be listed.");
   } finally {
     clearTimeout(timer);
   }
