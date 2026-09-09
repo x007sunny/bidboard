@@ -12,7 +12,7 @@ export default async function TermsPage() {
       <SiteHeader />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Terms of Service</h1>
       <p className="mb-8 text-sm text-neutral-500">
-        Effective 23 August 2026. Last updated 30 August 2026.
+        Effective 23 August 2026. Last updated 9 September 2026.
       </p>
 
       <div className="max-w-2xl space-y-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
@@ -40,6 +40,21 @@ export default async function TermsPage() {
             bid amount in Australian dollars. Listings are paid advertisements, not
             reviews, certifications, or endorsements. Higher bids can outrank you at
             any time. We do not guarantee traffic, clicks, leads, or time at a rank.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-2 font-semibold text-black dark:text-white">Founding 50</h2>
+          <p>
+            The Founding 50 is a one-time public record of the first 50 unique
+            listings that go live after Stripe confirms payment. A listing counts
+            once. Raising an existing bid does not create another Founding 50 place.
+            Membership and founding rank are assigned when the 50th listing goes live
+            and do not change if later bids reorder the Leaderboard. Founding 50 is a
+            historical display, not a separate paid product, certification, or
+            guarantee of traffic, rank, or time on the board. We may keep a founding
+            archive entry if a listing is later edited or removed. Founding 50 does
+            not change the payment, ranking, refund, or removal terms above.
           </p>
         </section>
 
