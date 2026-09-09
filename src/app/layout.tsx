@@ -3,15 +3,44 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { VisitBeacon } from "@/components/VisitBeacon";
 
+const SITE_URL = "https://bidboard.com.au";
+const OG_IMAGE = `${SITE_URL}/og.png`;
+const TITLE = "bidboard.com.au – Buy your position. Get seen.";
+const DESCRIPTION =
+  "Australia's pay-to-rank business leaderboard. No ads. No subscriptions. Your bid determines your rank.";
+
 export const metadata: Metadata = {
-  title: "bidboard.com.au – Buy your position. Get seen.",
-  description:
-    "Australia's pay-to-rank business leaderboard. No ads. No subscriptions. Your bid determines your rank.",
-  metadataBase: new URL("https://bidboard.com.au"),
+  title: TITLE,
+  description: DESCRIPTION,
+  metadataBase: new URL(SITE_URL),
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
     apple: "/favicon.png",
+  },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Bidboard",
+    title: TITLE,
+    description: DESCRIPTION,
+    locale: "en_AU",
+    images: [
+      {
+        url: OG_IMAGE,
+        secureUrl: OG_IMAGE,
+        type: "image/png",
+        width: 1200,
+        height: 630,
+        alt: "Bidboard – Australia's business leaderboard. Buy your position. Get seen.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
 };
 
