@@ -9,7 +9,7 @@ export default async function TermsPage() {
 
   return (
     <main>
-      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
+      <SiteHeader />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Terms of Service</h1>
       <p className="mb-8 text-sm text-neutral-500">
         Effective 23 August 2026. Last updated 30 August 2026.
@@ -171,7 +171,7 @@ export default async function TermsPage() {
           </p>
         </section>
       </div>
-      <SiteFooter />
+      <SiteFooter onlineNow={onlineNow} totalVisitors={totalVisitors} />
     </main>
   );
 }

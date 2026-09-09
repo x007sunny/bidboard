@@ -54,10 +54,9 @@ export function ClaimBox({
 
   return (
     <section className="mb-5 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-      <div className="lg:max-w-[26rem] lg:shrink-0">
-        <h1 className="text-3xl font-bold tracking-tight leading-[1.15] sm:text-[2.15rem]">
-          <span className="block md:whitespace-nowrap">Buy your position.</span>
-          <span className="block md:whitespace-nowrap text-indigo-600">Get seen.</span>
+      <div className="min-w-0 lg:max-w-[26rem] lg:shrink-0">
+        <h1 className="whitespace-nowrap text-[clamp(1.2rem,4.6vw+0.35rem,2.15rem)] font-bold tracking-tight leading-tight">
+          Buy your position. <span className="text-indigo-600">Get seen.</span>
         </h1>
         <p className="mt-3 text-sm text-neutral-600 leading-6 dark:text-neutral-400 md:whitespace-nowrap">
           Australia's pay-to-rank business leaderboard.

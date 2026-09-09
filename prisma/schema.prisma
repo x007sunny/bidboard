@@ -24,6 +24,7 @@ model Listing {
   lastBidAt   DateTime @default(now())
   uniqueKey   String   @unique
   payments    Payment[]
+  foundingMember FoundingMember?
 
   @@index([bidCents(sort: Desc)])
   @@index([lastBidAt(sort: Desc)])
@@ -73,4 +74,34 @@ model Category {
   updatedAt     DateTime @updatedAt
 
   @@index([sortOrder])
+}
+
+// Singleton: row id "founding50" exists only after the Founding 50 is locked.
+model FoundingLock {
+  id       String   @id
+  lockedAt DateTime
+}
+
+// Frozen archive of the first 50 unique paid listings, ranked at lock time.
+// Snapshot fields never change after insert. listingId is SetNull on delete.
+model FoundingMember {
+  id            String   @id @default(cuid())
+  foundingRank  Int      @unique
+  listingId     String?  @unique
+  listing       Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  uniqueKey     String
+  url           String
+  title         String
+  description   String   @db.Text
+  category      String
+  subcategory   String?
+  states        String[] @default([])
+  logoUrl       String?
+  bidCents      Int
+  clicks        Int      @default(0)
+  lastBidAt     DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([foundingRank])
+  @@index([category, subcategory])
 }

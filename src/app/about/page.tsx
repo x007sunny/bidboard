@@ -9,7 +9,7 @@ export default async function AboutPage() {
 
   return (
     <main>
-      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
+      <SiteHeader />
       <h1 className="mb-6 text-2xl font-bold tracking-tight">About Bidboard</h1>
 
       <div className="space-y-6 text-sm text-neutral-700 leading-relaxed max-w-lg dark:text-neutral-300">
@@ -84,7 +84,7 @@ export default async function AboutPage() {
           </p>
         </section>
       </div>
-      <SiteFooter />
+      <SiteFooter onlineNow={onlineNow} totalVisitors={totalVisitors} />
     </main>
   );
 }

@@ -3,19 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AU_NATIONAL, AU_STATES, CATEGORY_DISPLAY_ORDER, subcategoriesFor } from "@/lib/categories";
-
-function href(opts: {
-  category?: string;
-  subcategory?: string | null;
-  state?: string | null;
-}) {
-  const p = new URLSearchParams();
-  if (opts.category && opts.category !== "All") p.set("category", opts.category);
-  if (opts.subcategory) p.set("subcategory", opts.subcategory);
-  if (opts.state) p.set("state", opts.state);
-  const q = p.toString();
-  return q ? `/?${q}` : "/";
-}
+import type { BoardTab } from "@/lib/foundingRank";
+import { boardHref } from "@/lib/boardHref";
 
 const pill = (active: boolean) =>
   `rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap shrink-0 transition ${
@@ -32,6 +21,8 @@ export function BoardFilters({
   subcategoryCounts,
   categoryNames,
   subcategories,
+  board,
+  basePath = "/",
 }: {
   category: string;
   subcategory: string;
@@ -40,8 +31,23 @@ export function BoardFilters({
   subcategoryCounts: Record<string, number>;
   categoryNames?: string[];
   subcategories?: string[];
+  board?: BoardTab;
+  basePath?: string;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
+
+  const href = (opts: {
+    category?: string;
+    subcategory?: string | null;
+    state?: string | null;
+  }) =>
+    boardHref({
+      board,
+      basePath,
+      category: opts.category,
+      subcategory: opts.subcategory,
+      state: opts.state,
+    });
 
   const ordered = categoryNames?.length ? categoryNames : [...CATEGORY_DISPLAY_ORDER];
   const defaults = new Set<string>(CATEGORY_DISPLAY_ORDER);

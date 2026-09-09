@@ -5,6 +5,7 @@ import { stripe } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { parseStates, validateTaxonomy } from "@/lib/categories";
 import { taxonomyMap } from "@/lib/taxonomy";
+import { lockFounding50IfReady } from "@/lib/founding";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,14 @@ async function lockListing(
     SELECT id, "bidCents" FROM "Listing" WHERE "uniqueKey" = ${uniqueKey} FOR UPDATE
   `;
   return byKey[0] ?? null;
+}
+
+async function tryLockFounding50() {
+  try {
+    await lockFounding50IfReady();
+  } catch (err) {
+    console.error("Founding 50 lock failed (payment already recorded):", err);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -174,11 +183,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (isUniqueViolation(err, "id")) {
       console.log("Duplicate Stripe event ignored", event.id);
+      await tryLockFounding50();
       return NextResponse.json({ received: true, duplicate: true });
     }
     console.error("Error processing webhook:", err);
     return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 
+  await tryLockFounding50();
   return NextResponse.json({ received: true });
 }

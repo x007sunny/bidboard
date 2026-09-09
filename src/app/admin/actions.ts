@@ -10,6 +10,7 @@ import { fetchWebsiteMetadata } from "@/lib/fetchWebsiteMetadata";
 import { classifyListing } from "@/lib/classifyListing";
 import { parseStates, isKnownSubcategory } from "@/lib/categories";
 import { ensureTaxonomy, normalizeSubcategories, taxonomyMap } from "@/lib/taxonomy";
+import { lockFounding50IfReady } from "@/lib/founding";
 
 export async function loginAdmin(formData: FormData) {
   const password = String(formData.get("password") || "");
@@ -41,6 +42,7 @@ function dollarsToCents(raw: string): number {
 
 function revalidateBoard() {
   revalidatePath("/");
+  revalidatePath("/founding");
   revalidatePath("/categories");
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/categories");
@@ -106,6 +108,11 @@ export async function saveListing(formData: FormData) {
           lastBidAt: new Date(),
         },
       });
+      try {
+        await lockFounding50IfReady();
+      } catch {
+        // Listing is already saved; lock can retry on the next request.
+      }
     }
   } catch {
     redirect(id ? `/admin/${id}?error=2` : "/admin/new?error=2");
@@ -121,6 +128,10 @@ export async function deleteListing(formData: FormData) {
   if (!id) redirect("/admin/dashboard");
 
   await prisma.payment.updateMany({
+    where: { listingId: id },
+    data: { listingId: null },
+  });
+  await prisma.foundingMember.updateMany({
     where: { listingId: id },
     data: { listingId: null },
   });

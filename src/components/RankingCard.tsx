@@ -57,6 +57,11 @@ function duckDuckGoIcon(url: string) {
   }
 }
 
+function ensureHttp(url: string) {
+  const t = url.trim();
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
 function CrownBadge({ rank }: { rank: 1 | 2 | 3 }) {
   const fill = rank === 1 ? "#f5c518" : rank === 2 ? "#c5cdd6" : "#d08a4c";
   const crown = rank === 1 ? "#fff8dc" : rank === 2 ? "#ffffff" : "#fff1e0";
@@ -93,9 +98,13 @@ const PRICE_BY_RANK: Record<number, string> = {
 export function RankingCard({
   rank,
   listing,
+  showClaim = true,
+  trackClicks = true,
 }: {
   rank: number;
   listing: Listing;
+  showClaim?: boolean;
+  trackClicks?: boolean;
 }) {
   const claimPrice = listing.bidCents + 100;
   const isTop3 = rank <= 3;
@@ -132,6 +141,10 @@ export function RankingCard({
     : "rounded-2xl border border-neutral-200 bg-white p-4 hover:border-neutral-300 transition dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-neutral-500";
 
   function goToSite() {
+    if (!trackClicks) {
+      window.open(ensureHttp(listing.url), "_blank", "noopener,noreferrer");
+      return;
+    }
     window.open(`/api/click/${listing.id}`, "_blank", "noopener,noreferrer");
   }
 
@@ -232,14 +245,18 @@ export function RankingCard({
               <span className="truncate">{listingHost(listing.url)}</span>
               <span className="text-neutral-300">·</span>
               <span>{listing.clicks.toLocaleString()} clicks</span>
-              <span className="text-neutral-300">·</span>
-              <button
-                type="button"
-                onClick={onClaim}
-                className="font-medium text-indigo-600 hover:underline dark:text-indigo-300"
-              >
-                Claim for {formatAUD(claimPrice)}
-              </button>
+              {showClaim && (
+                <>
+                  <span className="text-neutral-300">·</span>
+                  <button
+                    type="button"
+                    onClick={onClaim}
+                    className="font-medium text-indigo-600 hover:underline dark:text-indigo-300"
+                  >
+                    Claim for {formatAUD(claimPrice)}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

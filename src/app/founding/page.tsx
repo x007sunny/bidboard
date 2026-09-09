@@ -1,33 +1,28 @@
 import Link from "next/link";
 import {
-  getBidLadder,
   getCategoryCounts,
   getLeaderboard,
   getSubcategoryCounts,
 } from "@/lib/ranking";
 import { RankingCard } from "@/components/RankingCard";
-import { ActivityTicker } from "@/components/ActivityTicker";
-import { ClaimBox } from "@/components/ClaimBox";
 import { BoardFilters } from "@/components/BoardFilters";
 import { BoardToggle } from "@/components/BoardToggle";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getVisitorStats } from "@/lib/visitors";
 import { ensureTaxonomy } from "@/lib/taxonomy";
-import { logTiming, timeit } from "@/lib/timing";
 import {
   getFoundingArchive,
   getFoundingCategoryCounts,
   getFoundingSubcategoryCounts,
   ensureFoundingState,
-  parseBoard,
 } from "@/lib/founding";
 import { boardHref } from "@/lib/boardHref";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function HomePage({
+export default async function FoundingPage({
   searchParams,
 }: {
   searchParams: Promise<{
@@ -35,7 +30,6 @@ export default async function HomePage({
     category?: string;
     subcategory?: string;
     state?: string;
-    board?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -46,16 +40,11 @@ export default async function HomePage({
   const filter = { category, subcategory: subcategory || undefined, state: state || undefined };
 
   const { locked } = await ensureFoundingState();
-  const board = parseBoard(params.board, locked);
-  const showArchive = board === "founding" && locked;
-
-  const timings: Record<string, number> = {};
-  const t0 = Date.now();
+  const showArchive = locked;
 
   const [
     liveBoard,
     archive,
-    bidList,
     liveCategoryCounts,
     archiveCategoryCounts,
     liveSubCounts,
@@ -65,48 +54,27 @@ export default async function HomePage({
   ] = await Promise.all([
     showArchive
       ? Promise.resolve({ listings: [], total: 0, page, limit: 50 })
-      : timeit("leaderboard", () => getLeaderboard(50, page, filter), timings),
-    showArchive
-      ? timeit("foundingArchive", () => getFoundingArchive(50, page, filter), timings)
-      : Promise.resolve({ listings: [], total: 0, page, limit: 50 }),
-    timeit("bidLadder", () => getBidLadder(), timings),
-    showArchive
-      ? Promise.resolve({} as Record<string, number>)
-      : timeit("categoryCounts", () => getCategoryCounts(), timings),
-    showArchive
-      ? timeit("foundingCategoryCounts", () => getFoundingCategoryCounts(), timings)
-      : Promise.resolve({} as Record<string, number>),
+      : getLeaderboard(50, page, filter),
+    showArchive ? getFoundingArchive(50, page, filter) : Promise.resolve({ listings: [], total: 0 }),
+    showArchive ? Promise.resolve({} as Record<string, number>) : getCategoryCounts(),
+    showArchive ? getFoundingCategoryCounts() : Promise.resolve({} as Record<string, number>),
     showArchive
       ? Promise.resolve({} as Record<string, number>)
-      : timeit("subcategoryCounts", () => getSubcategoryCounts(category, state || undefined), timings),
+      : getSubcategoryCounts(category, state || undefined),
     showArchive
-      ? timeit("foundingSubCounts", () => getFoundingSubcategoryCounts(category, state || undefined), timings)
+      ? getFoundingSubcategoryCounts(category, state || undefined)
       : Promise.resolve({} as Record<string, number>),
-    timeit("visitors", () => getVisitorStats(), timings),
-    timeit("taxonomy", () => ensureTaxonomy(), timings),
+    getVisitorStats(),
+    ensureTaxonomy(),
   ]);
 
-  const parallelMs = Date.now() - t0;
-  const topBid = bidList[0]?.bidCents ?? 0;
   const { totalVisitors, onlineNow } = visitorStats;
   const start = (page - 1) * 50;
   const currentSubs = taxonomy.find((t) => t.name === category)?.subcategories || [];
-
   const listings = showArchive ? archive.listings : liveBoard.listings;
   const total = showArchive ? archive.total : liveBoard.total;
   const categoryCounts = showArchive ? archiveCategoryCounts : liveCategoryCounts;
   const subcategoryCounts = showArchive ? archiveSubCounts : liveSubCounts;
-
-  logTiming({
-    filter,
-    board,
-    locked,
-    listingCount: listings.length,
-    bidLadderCount: bidList.length,
-    parallelMs,
-    timings,
-    wallMs: Date.now() - t0,
-  });
 
   return (
     <main>
@@ -120,31 +88,34 @@ export default async function HomePage({
         subcategoryCounts={subcategoryCounts}
         categoryNames={taxonomy.map((t) => t.name)}
         subcategories={currentSubs}
-        board={board}
+        basePath="/founding"
       />
 
       <BoardToggle
-        board={board}
+        board="founding"
         locked={locked}
         category={category}
         subcategory={subcategory}
         state={state}
+        basePath="/founding"
       />
 
-      {showArchive && (
-        <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          Founding 50 — Locked
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">The Founding 50</h1>
+        <p className="mt-2 text-sm text-neutral-500">
+          The first 50 businesses to join Bidboard.
         </p>
-      )}
+        {locked && (
+          <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+            Founding 50 — Locked
+          </p>
+        )}
+      </div>
 
-      <ClaimBox topBidCents={topBid} listings={bidList} />
-
-      <ActivityTicker />
-
-      <section className="mt-5">
+      <section>
         {listings.length === 0 ? (
           <div className="rounded-xl border border-dashed border-neutral-300 py-14 text-center text-neutral-500 text-sm">
-            {showArchive
+            {locked
               ? "No founding businesses in this category."
               : "No listings in this category yet."}
           </div>
@@ -164,15 +135,6 @@ export default async function HomePage({
                     showClaim={!showArchive}
                     trackClicks={!showArchive || Boolean("liveListingId" in listing && listing.liveListingId)}
                   />
-                  {rank === 3 && listings.length > 3 && (
-                    <div className="my-3 flex items-center gap-3">
-                      <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-                      <span className="rounded-full border border-neutral-200 bg-white px-3 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900">
-                        Top 3
-                      </span>
-                      <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-700" />
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -184,7 +146,7 @@ export default async function HomePage({
             {page > 1 && (
               <Link
                 href={boardHref({
-                  board,
+                  basePath: "/founding",
                   category,
                   subcategory: subcategory || null,
                   state: state || null,
@@ -201,7 +163,7 @@ export default async function HomePage({
             {page * 50 < total && (
               <Link
                 href={boardHref({
-                  board,
+                  basePath: "/founding",
                   category,
                   subcategory: subcategory || null,
                   state: state || null,

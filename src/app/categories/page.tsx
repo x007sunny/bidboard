@@ -51,7 +51,7 @@ export default async function CategoriesPage() {
 
   return (
     <main>
-      <SiteHeader onlineNow={onlineNow} totalVisitors={totalVisitors} />
+      <SiteHeader />
 
       <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">Categories</h1>
       <p className="mt-2 mb-6 text-sm text-neutral-500">
@@ -118,7 +118,7 @@ export default async function CategoriesPage() {
       {groups.length === 0 && (
         <p className="text-sm text-neutral-500">No listings yet.</p>
       )}
-      <SiteFooter />
+      <SiteFooter onlineNow={onlineNow} totalVisitors={totalVisitors} />
     </main>
   );
 }
