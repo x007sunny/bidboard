@@ -12,15 +12,15 @@ export default async function PrivacyPage() {
       <SiteHeader />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Privacy Policy</h1>
       <p className="mb-8 text-sm text-neutral-500">
-        Effective 23 August 2026. Last updated 30 August 2026.
+        Effective 23 August 2026. Last updated 10 September 2026.
       </p>
 
       <div className="max-w-2xl space-y-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
         <p>
           This policy explains how bidboard.com.au ("Bidboard") handles information.
           Contact:{" "}
-          <a href="mailto:sunny.singh@outlook.com" className="underline">
-            sunny.singh@outlook.com
+          <a href="mailto:hello@bidboard.com.au" className="underline">
+            hello@bidboard.com.au
           </a>
           .
         </p>
@@ -94,7 +94,7 @@ export default async function PrivacyPage() {
             Listings stay until removed. Payment records are kept for accounting and
             fraud prevention. Click logs are kept only as needed for rate limiting
             and the public count. You can ask us to remove a listing by emailing
-            sunny.singh@outlook.com.
+            hello@bidboard.com.au.
           </p>
         </section>
 
@@ -103,7 +103,7 @@ export default async function PrivacyPage() {
           <p>
             Under the Australian Privacy Principles you may request access to, or
             correction of, personal information we hold about you. Email
-            sunny.singh@outlook.com. If you are unhappy with our response you can
+            hello@bidboard.com.au. If you are unhappy with our response you can
             contact the Office of the Australian Information Commissioner.
           </p>
         </section>

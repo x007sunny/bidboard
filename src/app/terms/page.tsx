@@ -12,7 +12,7 @@ export default async function TermsPage() {
       <SiteHeader />
       <h1 className="mb-2 text-2xl font-bold tracking-tight">Terms of Service</h1>
       <p className="mb-8 text-sm text-neutral-500">
-        Effective 23 August 2026. Last updated 9 September 2026.
+        Effective 23 August 2026. Last updated 10 September 2026.
       </p>
 
       <div className="max-w-2xl space-y-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
@@ -27,8 +27,8 @@ export default async function TermsPage() {
         </p>
         <p>
           Contact:{" "}
-          <a href="mailto:sunny.singh@outlook.com" className="underline">
-            sunny.singh@outlook.com
+          <a href="mailto:hello@bidboard.com.au" className="underline">
+            hello@bidboard.com.au
           </a>
         </p>
 
@@ -126,7 +126,7 @@ export default async function TermsPage() {
             You grant Bidboard a worldwide, non-exclusive, royalty-free licence to
             host, cache, and display your listing and fetched metadata so visitors
             can see the leaderboard. To request a takedown, email
-            sunny.singh@outlook.com. A takedown does not refund payment.
+            hello@bidboard.com.au. A takedown does not refund payment.
           </p>
         </section>
 
@@ -179,8 +179,8 @@ export default async function TermsPage() {
           <h2 className="mb-2 font-semibold text-black dark:text-white">Questions</h2>
           <p>
             Email{" "}
-            <a href="mailto:sunny.singh@outlook.com" className="underline">
-              sunny.singh@outlook.com
+            <a href="mailto:hello@bidboard.com.au" className="underline">
+              hello@bidboard.com.au
             </a>
             .
           </p>

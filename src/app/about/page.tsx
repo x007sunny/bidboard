@@ -107,8 +107,8 @@ export default async function AboutPage() {
           </p>
           <p className="mt-3">
             Questions:{" "}
-            <a href="mailto:sunny.singh@outlook.com" className="underline hover:text-black dark:hover:text-white">
-              sunny.singh@outlook.com
+            <a href="mailto:hello@bidboard.com.au" className="underline hover:text-black dark:hover:text-white">
+              hello@bidboard.com.au
             </a>
           </p>
         </section>
